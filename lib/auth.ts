@@ -19,7 +19,7 @@ export const auth = betterAuth({
     enabled: true,
     sendResetPassword: async ({ user, url }) => {
       resend.emails.send({
-        from: "onboarding@resend.dev",
+        from: "warrior@bmsdev.com",
         to: user.email,
         subject: "Reset your password",
         react: ForgotPasswordEmail({ userEmail: user.email, username: user.name, resetUrl: url}),

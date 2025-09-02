@@ -5,7 +5,11 @@ import { Button } from "./ui/button";
 import { LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-export function Logout() {
+interface LogoutProps {
+  collapsed?: boolean;
+}
+
+export function Logout({ collapsed = false }: LogoutProps) {
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -14,8 +18,19 @@ export function Logout() {
   };
 
   return (
-    <Button variant="outline" onClick={handleLogout}>
-      Logout <LogOut className="size-4" />
+    <Button 
+      variant="ghost" 
+      onClick={handleLogout}
+      className={`w-full ${collapsed ? 'px-2' : ''}`}
+      title={collapsed ? 'Logout' : undefined}
+    >
+      {collapsed ? (
+        <LogOut className="h-4 w-4" />
+      ) : (
+        <>
+          Logout <LogOut className="h-4 w-4 ml-2" />
+        </>
+      )}
     </Button>
   );
 }

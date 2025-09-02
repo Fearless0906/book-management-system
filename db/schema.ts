@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, integer, decimal } from "drizzle-orm/pg-core";
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
@@ -60,4 +60,27 @@ export const verification = pgTable("verification", {
   ),
 });
 
-export const schema = { user, session, account, verification}
+export const book = pgTable("book", {
+  id: text("id").primaryKey(),
+  title: text("title").notNull(),
+  author: text("author").notNull(),
+  isbn: text("isbn"),
+  category: text("category").notNull(),
+  description: text("description"),
+  publishedYear: integer("published_year"),
+  publisher: text("publisher"),
+  pages: integer("pages"),
+  rating: decimal("rating", { precision: 2, scale: 1 }),
+  status: text("status").notNull().$defaultFn(() => "Available"), // Available, Borrowed, Reserved
+  borrowedBy: text("borrowed_by").references(() => user.id),
+  borrowedAt: timestamp("borrowed_at"),
+  dueDate: timestamp("due_date"),
+  createdAt: timestamp("created_at")
+    .$defaultFn(() => new Date())
+    .notNull(),
+  updatedAt: timestamp("updated_at")
+    .$defaultFn(() => new Date())
+    .notNull(),
+});
+
+export const schema = { user, session, account, verification, book }
