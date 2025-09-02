@@ -16,6 +16,15 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,12 +38,13 @@ import {
   Eye,
   Trash2,
   RefreshCcw,
+  ListFilter,
   Loader2,
 } from "lucide-react";
 import useFetch from "@/helpers/useFetch";
 import { createBook, fetchBooks } from "@/lib/api";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function BooksPage() {
   const {
@@ -44,12 +54,38 @@ export default function BooksPage() {
     refetch,
   } = useFetch(fetchBooks);
 
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 10;
 
-  const totalPages = books ? Math.ceil(books.length / rowsPerPage) : 0;
-  const paginatedBooks = books
-    ? books.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage)
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter]);
+
+  // Filter books based on search term and status
+  const filteredBooks = books?.filter((book) => {
+    const term = searchTerm.toLowerCase();
+    const matchesSearch =
+      book.title?.toLowerCase().includes(term) ||
+      book.author?.toLowerCase().includes(term) ||
+      book.isbn?.toLowerCase().includes(term) ||
+      book.category?.toLowerCase().includes(term);
+
+    const matchesStatus =
+      statusFilter === "All" || book.status === statusFilter;
+
+    return matchesSearch && matchesStatus;
+  });
+
+  const totalPages = filteredBooks
+    ? Math.ceil(filteredBooks.length / rowsPerPage)
+    : 0;
+  const paginatedBooks = filteredBooks
+    ? filteredBooks.slice(
+        (currentPage - 1) * rowsPerPage,
+        currentPage * rowsPerPage
+      )
     : [];
   // Add new book
   const handleAddBook = async (bookData: BookFormData) => {
@@ -87,10 +123,37 @@ export default function BooksPage() {
               <Input
                 placeholder="Search books by title, author, or ISBN..."
                 className="pl-10"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
             <div className="flex gap-2">
-              <Button variant="outline">Filter</Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline">
+                    <ListFilter className="h-4 w-4 mr-2" />
+                    Filter
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>Filter by status</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuRadioGroup
+                    value={statusFilter}
+                    onValueChange={setStatusFilter}
+                  >
+                    <DropdownMenuRadioItem value="All">
+                      All
+                    </DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="Available">
+                      Available
+                    </DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="Borrowed">
+                      Borrowed
+                    </DropdownMenuRadioItem>
+                  </DropdownMenuRadioGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Button variant="outline">
                 <Download className="h-4 w-4 mr-2" />
                 Export
@@ -123,7 +186,7 @@ export default function BooksPage() {
                 {loading ? (
                   <TableRow>
                     <TableCell
-                      colSpan={5}
+                      colSpan={9}
                       className="py-8 text-center text-gray-500"
                     >
                       <Loader2 className="w-5 h-5 animate-spin" />
@@ -132,19 +195,21 @@ export default function BooksPage() {
                 ) : error ? (
                   <TableRow>
                     <TableCell
-                      colSpan={5}
+                      colSpan={9}
                       className="py-8 text-center text-red-500"
                     >
                       Error: {error?.message}
                     </TableCell>
                   </TableRow>
-                ) : !books || books.length === 0 ? (
+                ) : paginatedBooks.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={5}
+                      colSpan={9}
                       className="py-8 text-center text-gray-500"
                     >
-                      No books found. Add your first book to get started!
+                      {searchTerm || statusFilter !== "All"
+                        ? "No books found matching your criteria."
+                        : "No books found. Add your first book to get started!"}
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -234,7 +299,7 @@ export default function BooksPage() {
           </div>
 
           {/* Pagination Control */}
-          {!loading && books && books.length > 0 && (
+          {!loading && filteredBooks && filteredBooks.length > rowsPerPage && (
             <div className="mt-6 flex justify-center">
               <Pagination>
                 <PaginationContent>

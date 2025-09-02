@@ -88,18 +88,27 @@ export function AddBookDialog({ onAddBook }: AddBookDialogProps) {
 
           const rows = results.data as any[];
 
-          const books: BookFormData[] = rows.map((row) => ({
-            title: row.title || "",
-            author: row.author || "",
-            isbn: row.isbn || "",
-            category: row.category || "",
-            description: row.description || "",
-            publishedYear: row.publishedyear
-              ? parseInt(row.publishedyear)
-              : undefined,
-            publisher: row.publisher || "",
-            pages: row.pages ? parseInt(row.pages) : undefined,
-          }));
+          const books: BookFormData[] = rows.map((row) => {
+            // Normalize rating
+            const rating =
+              row.rating && !isNaN(parseFloat(row.rating))
+                ? parseFloat(row.rating)
+                : undefined;
+
+            return {
+              title: row.title?.trim() || "",
+              author: row.author?.trim() || "",
+              rating,
+              isbn: row.isbn?.trim() || "",
+              category: row.category?.trim() || "",
+              description: row.description?.trim() || "",
+              publishedYear: row.publishedyear
+                ? parseInt(row.publishedyear)
+                : undefined,
+              publisher: row.publisher?.trim() || "",
+              pages: row.pages ? parseInt(row.pages) : undefined,
+            };
+          });
 
           const validBooks = books.filter(
             (b) => b.title && b.author && b.category
