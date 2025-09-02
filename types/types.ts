@@ -10,7 +10,5 @@ export interface Book {
   description?: string | null;
   publishedYear?: number | null;
   publisher?: string | null;
-  pages?: number | null;
-  createdAt: string;
-  updatedAt: string;
+  pages: number | null;
 }
