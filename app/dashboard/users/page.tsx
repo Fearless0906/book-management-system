@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { EmptyState } from "@/components/dashboard/EmptyState";
 import { UserList } from "@/components/UserList";
-import { AddUserDialog } from "@/components/AddUserDialog";
-import { EditUserDialog } from "@/components/EditUserDialog";
+import { AddUserDialog } from "@/components/modals/AddUserDialog";
+import { EditUserDialog } from "@/components/modals/EditUserDialog";
 import { Plus, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 

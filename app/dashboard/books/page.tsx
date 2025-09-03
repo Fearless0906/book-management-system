@@ -1,15 +1,7 @@
 "use client";
 
 import { Book } from "@/types/types";
-import { BookFormData } from "@/lib/api";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { BookFormData, PaginatedResponse } from "@/lib/api";
 import {
   Pagination,
   PaginationContent,
@@ -23,28 +15,20 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
+import { BooksTable } from "@/components/BooksTable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { AddBookDialog } from "@/components/AddBookDialog";
-import {
-  Search,
-  Star,
-  Edit2,
-  Eye,
-  Trash2,
-  Loader2,
-  ListFilter,
-  RefreshCcw,
-} from "lucide-react";
-import useFetch from "@/helpers/useFetch";
-import { createBook, fetchBooks, updateBook, deleteBook } from "@/lib/api";
+import { AddBookDialog } from "@/components/modals/AddBookDialog";
+import { ImportBooksDialog } from "@/components/modals/ImportBooksDialog";
+import { Search, ListFilter, RefreshCcw } from "lucide-react";
+import { createBook, updateBook, deleteBook } from "@/lib/api";
 import { toast } from "sonner";
-import { ViewBookDialog } from "@/components/ViewBookDialog";
-import { EditBookDialog } from "@/components/EditBookDialog";
-import { useCallback, useEffect, useState } from "react";
+import { ViewBookDialog } from "@/components/modals/ViewBookDialog";
+import { EditBookDialog } from "@/components/modals/EditBookDialog";
+import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useBooks } from "@/hooks/useBooks";
 
 export default function BooksPage() {
   const [currentPage, setCurrentPage] = useState(1);
@@ -57,25 +41,27 @@ export default function BooksPage() {
 
   const debouncedSearch = useDebounce(searchTerm, 300);
 
-  const fetchBooksWithParams = useCallback(async () => {
-    return fetchBooks({
-      page: currentPage,
-      limit: rowsPerPage,
-      search: debouncedSearch || undefined,
-      status: statusFilter !== "All" ? statusFilter : undefined,
-    });
-  }, [currentPage, rowsPerPage, debouncedSearch, statusFilter]);
-
   const {
     data: booksData,
-    error,
-    loading,
+    isLoading,
+    isFetching,
+    isError: error,
     refetch,
-  } = useFetch(
-    fetchBooksWithParams,
-    [currentPage, debouncedSearch, statusFilter],
-    true
-  );
+  } = useBooks({
+    page: currentPage,
+    limit: rowsPerPage,
+    search: debouncedSearch || undefined,
+    status: statusFilter !== "All" ? statusFilter : undefined,
+  }) as {
+    data: PaginatedResponse<Book> | undefined;
+    isLoading: boolean;
+    isFetching: boolean;
+    isError: boolean;
+    refetch: () => void;
+  };
+
+  // Show loading state during initial load and subsequent fetches
+  const loading = isLoading || isFetching;
 
   // Reset to first page when filters change
   useEffect(() => {
@@ -186,82 +172,33 @@ export default function BooksPage() {
                 </DropdownMenuRadioGroup>
               </DropdownMenuContent>
             </DropdownMenu>
-            <Button variant="outline" onClick={refetch} disabled={loading}>
+            <Button
+              variant="outline"
+              onClick={() => refetch()}
+              disabled={loading}
+            >
               <RefreshCcw
                 className={`h-4 w-4 transition-transform ${loading ? "animate-spin" : ""}`}
               />
             </Button>
           </div>
-          <AddBookDialog onAddBook={handleAddBook} />
+          <div className="flex gap-2">
+            <ImportBooksDialog onAddBook={handleAddBook} />
+            <AddBookDialog onAddBook={handleAddBook} />
+          </div>
         </div>
 
-        {loading ? (
-          <div className="flex justify-center items-center h-64">
-            <Loader2 className="h-8 w-8 animate-spin" />
-          </div>
-        ) : error ? (
+        {error ? (
           <div className="text-center text-red-500">Error loading books</div>
         ) : (
           <>
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Title</TableHead>
-                    <TableHead>Author</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Rating</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {books.map((book: Book) => (
-                    <TableRow key={book.id}>
-                      <TableCell>{book.title}</TableCell>
-                      <TableCell>{book.author}</TableCell>
-                      <TableCell>{book.category}</TableCell>
-                      <TableCell>{book.status}</TableCell>
-                      <TableCell>
-                        {book.rating ? (
-                          <div className="flex items-center">
-                            <Star className="h-4 w-4 text-yellow-400 mr-1" />
-                            {book.rating}
-                          </div>
-                        ) : (
-                          "-"
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleViewBook(book)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleEditBook(book)}
-                          >
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDeleteBook(book.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+            <BooksTable
+              books={books}
+              loading={loading}
+              onViewBook={handleViewBook}
+              onEditBook={handleEditBook}
+              onDeleteBook={handleDeleteBook}
+            />
 
             {totalPages > 1 && (
               <div className="mt-4 flex justify-center">

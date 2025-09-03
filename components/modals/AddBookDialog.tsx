@@ -1,7 +1,6 @@
 "use client";
 
-import { Book } from "@/types/types";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,75 +11,98 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
-import { Textarea } from "./ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "./ui/select";
+import { Plus } from "lucide-react";
+import { Textarea } from "../ui/textarea";
 
-interface EditBookDialogProps {
-  book: Book | null;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onSave: (book: Book) => void;
+interface AddBookDialogProps {
+  onAddBook: (book: BookFormData) => void;
 }
 
-export function EditBookDialog({
-  book,
-  open,
-  onOpenChange,
-  onSave,
-}: EditBookDialogProps) {
-  const [formData, setFormData] = useState<Book | null>(null);
+export interface BookFormData {
+  title: string;
+  author: string;
+  isbn?: string;
+  category: string;
+  description?: string;
+  publishedYear?: number;
+  publisher?: string;
+  pages?: number;
+  rating?: number;
+  status?: "Available" | "Borrowed" | "Reserved";
+}
 
-  useEffect(() => {
-    if (book) {
-      setFormData(book);
-    }
-  }, [book]);
+export function AddBookDialog({ onAddBook }: AddBookDialogProps) {
+  const [open, setOpen] = useState(false);
+  const [formData, setFormData] = useState<BookFormData>({
+    title: "",
+    author: "",
+    isbn: "",
+    category: "",
+    description: "",
+    publishedYear: undefined,
+    publisher: "",
+    pages: undefined,
+    rating: undefined,
+    status: "Available",
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (
-      !formData ||
-      !formData.title ||
-      !formData.author ||
-      !formData.category
-    ) {
+
+    if (!formData.title || !formData.author || !formData.category) {
+      alert("Please fill in all required fields (Title, Author, Category)");
       return;
     }
-    onSave(formData);
-    onOpenChange(false);
+
+    onAddBook(formData);
+    resetForm();
   };
 
-  const handleInputChange = (field: keyof Book, value: string | number) => {
-    if (!formData) return;
-    setFormData((prev) => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        [field]:
-          field === "publishedYear" || field === "pages"
-            ? value === ""
-              ? undefined
-              : Number(value)
-            : value,
-      };
+  const handleInputChange = (field: keyof BookFormData, value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]:
+        field === "publishedYear" || field === "pages"
+          ? value === ""
+            ? undefined
+            : parseInt(value)
+          : value,
+    }));
+  };
+
+  const resetForm = () => {
+    setFormData({
+      title: "",
+      author: "",
+      isbn: "",
+      category: "",
+      description: "",
+      publishedYear: undefined,
+      publisher: "",
+      pages: undefined,
+      rating: undefined,
+      status: "Available",
     });
+    setOpen(false);
   };
-
-  if (!formData) return null;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button>
+          <Plus className="h-4 w-4 mr-2" />
+          Add New Book
+        </Button>
+      </DialogTrigger>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Edit Book</DialogTitle>
-          <DialogDescription>Update the book details below.</DialogDescription>
+          <DialogTitle>Add New Book</DialogTitle>
+          <DialogDescription>
+            Add a new book to your library collection. Fill in the details
+            below.
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit}>
@@ -92,6 +114,7 @@ export function EditBookDialog({
                   id="title"
                   value={formData.title}
                   onChange={(e) => handleInputChange("title", e.target.value)}
+                  placeholder="Enter book title"
                   required
                 />
               </div>
@@ -101,6 +124,7 @@ export function EditBookDialog({
                   id="author"
                   value={formData.author}
                   onChange={(e) => handleInputChange("author", e.target.value)}
+                  placeholder="Enter author name"
                   required
                 />
               </div>
@@ -111,8 +135,9 @@ export function EditBookDialog({
                 <Label htmlFor="isbn">ISBN</Label>
                 <Input
                   id="isbn"
-                  value={formData.isbn || ""}
+                  value={formData.isbn}
                   onChange={(e) => handleInputChange("isbn", e.target.value)}
+                  placeholder="Enter ISBN"
                 />
               </div>
               <div className="space-y-2">
@@ -123,6 +148,7 @@ export function EditBookDialog({
                   onChange={(e) =>
                     handleInputChange("category", e.target.value)
                   }
+                  placeholder="e.g., Fiction, Science, History"
                   required
                 />
               </div>
@@ -132,10 +158,11 @@ export function EditBookDialog({
               <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"
-                value={formData.description || ""}
+                value={formData.description}
                 onChange={(e) =>
                   handleInputChange("description", e.target.value)
                 }
+                placeholder="Brief description of the book"
               />
             </div>
 
@@ -149,16 +176,18 @@ export function EditBookDialog({
                   onChange={(e) =>
                     handleInputChange("publishedYear", e.target.value)
                   }
+                  placeholder="2023"
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="publisher">Publisher</Label>
                 <Input
                   id="publisher"
-                  value={formData.publisher || ""}
+                  value={formData.publisher}
                   onChange={(e) =>
                     handleInputChange("publisher", e.target.value)
                   }
+                  placeholder="Publisher name"
                 />
               </div>
               <div className="space-y-2">
@@ -168,35 +197,35 @@ export function EditBookDialog({
                   type="number"
                   value={formData.pages || ""}
                   onChange={(e) => handleInputChange("pages", e.target.value)}
+                  placeholder="300"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="status">Status</Label>
-                <Select
-                  value={formData.status}
-                  onValueChange={(value) => handleInputChange("status", value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Available">Available</SelectItem>
-                    <SelectItem value="Borrowed">Borrowed</SelectItem>
-                    <SelectItem value="Reserved">Reserved</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="rating">Rating (0-5)</Label>
+                <Input
+                  id="rating"
+                  type="number"
+                  min="0"
+                  max="5"
+                  step="0.1"
+                  value={formData.rating || ""}
+                  onChange={(e) => handleInputChange("rating", e.target.value)}
+                  placeholder="4.5"
+                />
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
-              Cancel
-            </Button>
-            <Button type="submit">Save Changes</Button>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit">Add Book</Button>
+            </div>
           </DialogFooter>
         </form>
       </DialogContent>

@@ -96,6 +96,8 @@ export async function POST(request: NextRequest) {
       publishedYear,
       publisher,
       pages,
+      rating,
+      status = "Available",
     } = body;
 
     // Basic validation
@@ -117,8 +119,8 @@ export async function POST(request: NextRequest) {
       publishedYear: publishedYear || null,
       publisher: publisher || null,
       pages: pages || null,
-      rating: null,
-      status: "Available",
+      rating: rating || null,
+      status: status,
       borrowedBy: null,
       borrowedAt: null,
       dueDate: null,
@@ -150,6 +152,8 @@ export async function PUT(request: NextRequest) {
       publishedYear,
       publisher,
       pages,
+      rating,
+      status,
     } = body;
 
     if (!id) {
@@ -190,6 +194,8 @@ export async function PUT(request: NextRequest) {
         publishedYear: publishedYear || null,
         publisher: publisher || null,
         pages: pages || null,
+        rating: rating || null,
+        status: status || "Available",
         updatedAt: new Date(),
       })
       .where(eq(book.id, id))
