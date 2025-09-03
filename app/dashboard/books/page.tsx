@@ -1,7 +1,7 @@
 "use client";
 
 import { Book } from "@/types/types";
-import { BookFormData } from "@/components/AddBookDialog";
+import { BookFormData } from "@/lib/api";
 import {
   Table,
   TableBody,
@@ -42,53 +42,48 @@ import { createBook, fetchBooks, updateBook, deleteBook } from "@/lib/api";
 import { toast } from "sonner";
 import { ViewBookDialog } from "@/components/ViewBookDialog";
 import { EditBookDialog } from "@/components/EditBookDialog";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { useDebounce } from "@/hooks/useDebounce";
 
 export default function BooksPage() {
-  const {
-    data: books,
-    error: error,
-    loading: loading,
-    refetch,
-  } = useFetch(fetchBooks);
-
+  const [currentPage, setCurrentPage] = useState(1);
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [searchTerm, setSearchTerm] = useState("");
   const [isViewBookOpen, setIsViewBookOpen] = useState(false);
   const [isEditBookOpen, setIsEditBookOpen] = useState(false);
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
-  const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 10;
 
+  const debouncedSearch = useDebounce(searchTerm, 300);
+
+  const fetchBooksWithParams = useCallback(async () => {
+    return fetchBooks({
+      page: currentPage,
+      limit: rowsPerPage,
+      search: debouncedSearch || undefined,
+      status: statusFilter !== "All" ? statusFilter : undefined,
+    });
+  }, [currentPage, rowsPerPage, debouncedSearch, statusFilter]);
+
+  const {
+    data: booksData,
+    error,
+    loading,
+    refetch,
+  } = useFetch(
+    fetchBooksWithParams,
+    [currentPage, debouncedSearch, statusFilter],
+    true
+  );
+
+  // Reset to first page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter]);
+  }, [debouncedSearch, statusFilter]);
 
-  // Filter books based on search term and status
-  const filteredBooks = books?.filter((book) => {
-    const term = searchTerm.toLowerCase();
-    const matchesSearch =
-      book.title?.toLowerCase().includes(term) ||
-      book.author?.toLowerCase().includes(term) ||
-      book.isbn?.toLowerCase().includes(term) ||
-      book.category?.toLowerCase().includes(term);
-
-    const matchesStatus =
-      statusFilter === "All" || book.status === statusFilter;
-
-    return matchesSearch && matchesStatus;
-  });
-
-  const totalPages = filteredBooks
-    ? Math.ceil(filteredBooks.length / rowsPerPage)
-    : 0;
-  const paginatedBooks = filteredBooks
-    ? filteredBooks.slice(
-        (currentPage - 1) * rowsPerPage,
-        currentPage * rowsPerPage
-      )
-    : [];
+  const books = booksData?.books || [];
+  const { totalPages = 0 } = booksData?.pagination || {};
 
   const handleAddBook = async (bookData: BookFormData) => {
     try {
@@ -221,7 +216,7 @@ export default function BooksPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginatedBooks.map((book) => (
+                  {books.map((book: Book) => (
                     <TableRow key={book.id}>
                       <TableCell>{book.title}</TableCell>
                       <TableCell>{book.author}</TableCell>

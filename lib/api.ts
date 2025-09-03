@@ -1,9 +1,50 @@
-import { BookFormData } from "@/components/AddBookDialog";
 import { Book } from "@/types/types";
 
-export const fetchBooks = async (): Promise<Book[]> => {
+export interface BookFormData {
+  title: string;
+  author: string;
+  isbn?: string;
+  category: string;
+  description?: string;
+  publishedYear?: number;
+  publisher?: string;
+  pages?: number;
+  status?: string;
+  rating?: number;
+}
+
+export interface PaginatedResponse<T> {
+  books: T[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
+
+export interface FetchBooksOptions {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: string;
+}
+
+export const fetchBooks = async ({
+  page = 1,
+  limit = 10,
+  search,
+  status,
+}: FetchBooksOptions = {}): Promise<PaginatedResponse<Book>> => {
   try {
-    const response = await fetch("/api/books");
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString(),
+      ...(search && { search }),
+      ...(status && { status }),
+    });
+
+    const response = await fetch(`/api/books?${params}`);
     if (!response.ok) {
       throw new Error("Failed to fetch books");
     }
@@ -33,10 +74,10 @@ export const updateBook = async (
   bookId: string,
   bookData: Partial<BookFormData>
 ): Promise<Book> => {
-  const response = await fetch(`/api/books/${bookId}`, {
+  const response = await fetch("/api/books", {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(bookData),
+    body: JSON.stringify({ ...bookData, id: bookId }),
   });
 
   if (!response.ok) {
@@ -47,7 +88,7 @@ export const updateBook = async (
 };
 
 export const deleteBook = async (bookId: string): Promise<void> => {
-  const response = await fetch(`/api/books/${bookId}`, {
+  const response = await fetch(`/api/books?id=${bookId}`, {
     method: "DELETE",
   });
 
