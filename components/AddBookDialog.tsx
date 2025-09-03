@@ -16,6 +16,7 @@ import {
 import { Plus } from "lucide-react";
 import { Textarea } from "./ui/textarea";
 import Papa from "papaparse";
+import { CsvRow } from "@/types/types";
 
 interface AddBookDialogProps {
   onAddBook: (book: BookFormData) => void;
@@ -30,6 +31,8 @@ export interface BookFormData {
   publishedYear?: number;
   publisher?: string;
   pages?: number;
+  rating?: number;
+  status?: "Available" | "Borrowed" | "Reserved";
 }
 
 export function AddBookDialog({ onAddBook }: AddBookDialogProps) {
@@ -44,6 +47,8 @@ export function AddBookDialog({ onAddBook }: AddBookDialogProps) {
     publishedYear: undefined,
     publisher: "",
     pages: undefined,
+    rating: undefined,
+    status: "Available",
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -74,26 +79,29 @@ export function AddBookDialog({ onAddBook }: AddBookDialogProps) {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    Papa.parse(file, {
+    Papa.parse<CsvRow>(file, {
       header: true,
       skipEmptyLines: true,
-      transformHeader: (header) =>
-        header.trim().toLowerCase().replace(/\s+/g, ""), // normalize headers
-      complete: (results) => {
+      transformHeader: (header: string): keyof CsvRow =>
+        header.trim().toLowerCase().replace(/\s+/g, "") as keyof CsvRow, // normalize headers
+      complete: (results: Papa.ParseResult<CsvRow>) => {
         try {
           if (results.errors.length > 0) {
             console.error("CSV Parsing Errors:", results.errors);
             throw new Error("Error parsing CSV file");
           }
 
-          const rows = results.data as any[];
+          const rows: CsvRow[] = results.data;
 
-          const books: BookFormData[] = rows.map((row) => {
+          const books: BookFormData[] = rows.map((row: CsvRow) => {
             // Normalize rating
-            const rating =
+            const rating: number | undefined =
               row.rating && !isNaN(parseFloat(row.rating))
                 ? parseFloat(row.rating)
                 : undefined;
+
+            // Convert status to proper type if present, default to "Available"
+            const status: string = row.status || "Available";
 
             return {
               title: row.title?.trim() || "",
@@ -107,10 +115,11 @@ export function AddBookDialog({ onAddBook }: AddBookDialogProps) {
                 : undefined,
               publisher: row.publisher?.trim() || "",
               pages: row.pages ? parseInt(row.pages) : undefined,
+              status: status as "Available" | "Borrowed" | "Reserved",
             };
           });
 
-          const validBooks = books.filter(
+          const validBooks: BookFormData[] = books.filter(
             (b) => b.title && b.author && b.category
           );
 
@@ -122,14 +131,14 @@ export function AddBookDialog({ onAddBook }: AddBookDialogProps) {
           }
 
           // Add the books
-          validBooks.forEach((book) => onAddBook(book));
+          validBooks.forEach((book: BookFormData) => onAddBook(book));
           resetForm();
         } catch (error) {
-          console.error("Error parsing CSV:", error);
+          console.error("Error processing CSV:", error);
           alert("Invalid CSV file format or no valid books found");
         }
       },
-      error: (error) => {
+      error: (error: Error) => {
         console.error("Error reading file:", error);
         alert("Error reading file");
       },
@@ -146,6 +155,8 @@ export function AddBookDialog({ onAddBook }: AddBookDialogProps) {
       publishedYear: undefined,
       publisher: "",
       pages: undefined,
+      rating: undefined,
+      status: "Available",
     });
     setImportMode(false);
     setOpen(false);
@@ -245,7 +256,7 @@ export function AddBookDialog({ onAddBook }: AddBookDialogProps) {
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="publishedYear">Published Year</Label>
                   <Input
@@ -279,30 +290,44 @@ export function AddBookDialog({ onAddBook }: AddBookDialogProps) {
                     placeholder="300"
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="rating">Rating (0-5)</Label>
+                  <Input
+                    id="rating"
+                    type="number"
+                    min="0"
+                    max="5"
+                    step="0.1"
+                    value={formData.rating || ""}
+                    onChange={(e) =>
+                      handleInputChange("rating", e.target.value)
+                    }
+                    placeholder="4.5"
+                  />
+                </div>
               </div>
             </div>
-            <DialogFooter>
+            <DialogFooter className="flex justify-between">
               <Button
                 type="button"
-                variant="outline"
-                onClick={() => setOpen(false)}
+                variant="ghost"
+                onClick={() => setImportMode((prev) => !prev)}
               >
-                Cancel
+                {importMode ? "Switch to Manual Entry" : "Import from CSV"}
               </Button>
-              <Button type="submit">Add Book</Button>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit">Add Book</Button>
+              </div>
             </DialogFooter>
           </form>
         )}
-
-        <DialogFooter>
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => setImportMode((prev) => !prev)}
-          >
-            {importMode ? "Switch to Manual Entry" : "Import from CSV"}
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

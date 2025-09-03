@@ -28,3 +28,30 @@ export const createBook = async (bookData: BookFormData): Promise<Book> => {
 
   return response.json();
 };
+
+export const updateBook = async (
+  bookId: string,
+  bookData: Partial<BookFormData>
+): Promise<Book> => {
+  const response = await fetch(`/api/books/${bookId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(bookData),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to update book");
+  }
+
+  return response.json();
+};
+
+export const deleteBook = async (bookId: string): Promise<void> => {
+  const response = await fetch(`/api/books/${bookId}`, {
+    method: "DELETE",
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to delete book");
+  }
+};

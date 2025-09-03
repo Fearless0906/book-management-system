@@ -1,5 +1,7 @@
 "use client";
 
+import { Book } from "@/types/types";
+import { BookFormData } from "@/components/AddBookDialog";
 import {
   Table,
   TableBody,
@@ -13,38 +15,35 @@ import {
   PaginationContent,
   PaginationItem,
   PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
 } from "@/components/ui/pagination";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { AddBookDialog, BookFormData } from "@/components/AddBookDialog";
+import { AddBookDialog } from "@/components/AddBookDialog";
 import {
   Search,
-  Download,
   Star,
   Edit2,
   Eye,
   Trash2,
-  RefreshCcw,
-  ListFilter,
   Loader2,
+  ListFilter,
+  RefreshCcw,
 } from "lucide-react";
 import useFetch from "@/helpers/useFetch";
-import { createBook, fetchBooks } from "@/lib/api";
+import { createBook, fetchBooks, updateBook, deleteBook } from "@/lib/api";
 import { toast } from "sonner";
+import { ViewBookDialog } from "@/components/ViewBookDialog";
+import { EditBookDialog } from "@/components/EditBookDialog";
 import { useEffect, useState } from "react";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
 
 export default function BooksPage() {
   const {
@@ -54,6 +53,9 @@ export default function BooksPage() {
     refetch,
   } = useFetch(fetchBooks);
 
+  const [isViewBookOpen, setIsViewBookOpen] = useState(false);
+  const [isEditBookOpen, setIsEditBookOpen] = useState(false);
+  const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
@@ -87,254 +89,245 @@ export default function BooksPage() {
         currentPage * rowsPerPage
       )
     : [];
-  // Add new book
+
   const handleAddBook = async (bookData: BookFormData) => {
     try {
-      const newBook = await createBook(bookData);
-
+      await createBook(bookData);
       await refetch();
       toast.success("Book added successfully");
-      return newBook;
-    } catch (err) {
-      const error = err instanceof Error ? err.message : "Failed to add book";
-      toast.error(error);
+    } catch (error) {
+      console.error("Error adding book:", error);
+      toast.error("Failed to add book");
     }
+  };
+
+  const handleViewBook = (book: Book) => {
+    setSelectedBook(book);
+    setIsViewBookOpen(true);
+  };
+
+  const handleEditBook = (book: Book) => {
+    setSelectedBook(book);
+    setIsEditBookOpen(true);
+  };
+
+  const handleUpdateBook = async (updatedBook: Book) => {
+    try {
+      const bookData = {
+        title: updatedBook.title,
+        author: updatedBook.author,
+        isbn: updatedBook.isbn || undefined,
+        category: updatedBook.category,
+        description: updatedBook.description || undefined,
+        publishedYear: updatedBook.publishedYear || undefined,
+        publisher: updatedBook.publisher || undefined,
+        pages: updatedBook.pages || undefined,
+        status: updatedBook.status,
+        rating: updatedBook.rating || undefined,
+      };
+      await updateBook(updatedBook.id, bookData);
+      await refetch();
+      toast.success("Book updated successfully");
+    } catch (error) {
+      console.error("Error updating book:", error);
+      toast.error("Failed to update book");
+    }
+  };
+
+  const handleDeleteBook = async (bookId: string) => {
+    toast.error("Are you sure you want to delete this book?", {
+      action: {
+        label: "Delete",
+        onClick: async () => {
+          try {
+            await deleteBook(bookId);
+            await refetch();
+            toast.success("Book deleted successfully");
+          } catch (error) {
+            console.error("Error deleting book:", error);
+            toast.error("Failed to delete book");
+          }
+        },
+      },
+    });
   };
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Book Management
-            </h2>
-            <p className="text-gray-600 dark:text-gray-400">
-              Manage your library collection
-            </p>
+      <div className="container mx-auto py-10">
+        <div className="flex justify-between items-center mb-6">
+          <div className="flex items-center gap-4">
+            <div className="relative w-64">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search books..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-8"
+              />
+            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="gap-2">
+                  <ListFilter className="h-4 w-4" />
+                  Status: {statusFilter}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuRadioGroup
+                  value={statusFilter}
+                  onValueChange={setStatusFilter}
+                >
+                  <DropdownMenuRadioItem value="All">All</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="Available">
+                    Available
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="Borrowed">
+                    Borrowed
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="Reserved">
+                    Reserved
+                  </DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button variant="outline" onClick={refetch} disabled={loading}>
+              <RefreshCcw
+                className={`h-4 w-4 transition-transform ${loading ? "animate-spin" : ""}`}
+              />
+            </Button>
           </div>
           <AddBookDialog onAddBook={handleAddBook} />
         </div>
 
-        <div className="p-6 bg-card rounded-lg border">
-          <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
-                placeholder="Search books by title, author, or ISBN..."
-                className="pl-10"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            <div className="flex gap-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline">
-                    <ListFilter className="h-4 w-4 mr-2" />
-                    Filter
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>Filter by status</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuRadioGroup
-                    value={statusFilter}
-                    onValueChange={setStatusFilter}
-                  >
-                    <DropdownMenuRadioItem value="All">
-                      All
-                    </DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="Available">
-                      Available
-                    </DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="Borrowed">
-                      Borrowed
-                    </DropdownMenuRadioItem>
-                  </DropdownMenuRadioGroup>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              <Button variant="outline">
-                <Download className="h-4 w-4 mr-2" />
-                Export
-              </Button>
-              <Button variant="outline" onClick={refetch} disabled={loading}>
-                <RefreshCcw
-                  className={`h-4 w-4 transition-transform ${loading ? "animate-spin" : ""}`}
-                />
-              </Button>
-            </div>
+        {loading ? (
+          <div className="flex justify-center items-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin" />
           </div>
-
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Book Title</TableHead>
-                  <TableHead>Author</TableHead>
-                  <TableHead>ISBN</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Rating</TableHead>
-                  <TableHead>Pages</TableHead>
-                  <TableHead>Year</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-
-              <TableBody>
-                {loading ? (
+        ) : error ? (
+          <div className="text-center text-red-500">Error loading books</div>
+        ) : (
+          <>
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell
-                      colSpan={9}
-                      className="py-8 text-center text-gray-500"
-                    >
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                    </TableCell>
+                    <TableHead>Title</TableHead>
+                    <TableHead>Author</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Rating</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ) : error ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={9}
-                      className="py-8 text-center text-red-500"
-                    >
-                      Error: {error?.message}
-                    </TableCell>
-                  </TableRow>
-                ) : paginatedBooks.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={9}
-                      className="py-8 text-center text-gray-500"
-                    >
-                      {searchTerm || statusFilter !== "All"
-                        ? "No books found matching your criteria."
-                        : "No books found. Add your first book to get started!"}
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  paginatedBooks.map((book) => (
-                    <TableRow
-                      key={book.id}
-                      className="hover:bg-gray-50 dark:hover:bg-gray-800/50"
-                    >
+                </TableHeader>
+                <TableBody>
+                  {paginatedBooks.map((book) => (
+                    <TableRow key={book.id}>
+                      <TableCell>{book.title}</TableCell>
+                      <TableCell>{book.author}</TableCell>
+                      <TableCell>{book.category}</TableCell>
+                      <TableCell>{book.status}</TableCell>
                       <TableCell>
-                        <p className="font-medium text-gray-900 dark:text-white">
-                          {book.title}
-                        </p>
+                        {book.rating ? (
+                          <div className="flex items-center">
+                            <Star className="h-4 w-4 text-yellow-400 mr-1" />
+                            {book.rating}
+                          </div>
+                        ) : (
+                          "-"
+                        )}
                       </TableCell>
-                      <TableCell className="text-gray-600 dark:text-gray-400">
-                        {book.author}
-                      </TableCell>
-
-                      <TableCell className="text-gray-600 dark:text-gray-400">
-                        {book.isbn}
-                      </TableCell>
-
-                      <TableCell className="text-gray-600 dark:text-gray-400">
-                        {book.category}
-                      </TableCell>
-
-                      <TableCell>
-                        <div className="flex items-center">
-                          {book.rating ? (
-                            <>
-                              <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                              <span className="text-sm text-gray-600 dark:text-gray-400 ml-1">
-                                {book.rating}
-                              </span>
-                            </>
-                          ) : (
-                            <span className="text-sm text-gray-400">
-                              No rating
-                            </span>
-                          )}
-                        </div>
-                      </TableCell>
-
-                      <TableCell className="text-gray-600 dark:text-gray-400">
-                        {book.pages}
-                      </TableCell>
-
-                      <TableCell className="text-gray-600 dark:text-gray-400">
-                        {book.publishedYear}
-                      </TableCell>
-
-                      <TableCell>
-                        <span
-                          className={`px-3 py-1 text-xs font-medium rounded-full ${
-                            book.status === "Available"
-                              ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
-                              : book.status === "Borrowed"
-                                ? "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400"
-                                : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400"
-                          }`}
-                        >
-                          {book.status}
-                        </span>
-                      </TableCell>
-
-                      <TableCell>
-                        <div className="flex space-x-2">
-                          <Button variant="outline" size="sm">
-                            <Edit2 className="w-4 h-4" />
-                          </Button>
-                          <Button variant="outline" size="sm">
-                            <Eye className="w-4 h-4" />
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleViewBook(book)}
+                          >
+                            <Eye className="h-4 w-4" />
                           </Button>
                           <Button
-                            variant="outline"
-                            size="sm"
-                            className="bg-red-500 text-white hover:bg-red-600"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEditBook(book)}
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDeleteBook(book.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-
-          {/* Pagination Control */}
-          {!loading && filteredBooks && filteredBooks.length > rowsPerPage && (
-            <div className="mt-6 flex justify-center">
-              <Pagination>
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious
-                      href="#"
-                      onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-                    />
-                  </PaginationItem>
-
-                  {Array.from({ length: totalPages }).map((_, index) => (
-                    <PaginationItem key={index}>
-                      <PaginationLink
-                        href="#"
-                        isActive={currentPage === index + 1}
-                        onClick={() => setCurrentPage(index + 1)}
-                      >
-                        {index + 1}
-                      </PaginationLink>
-                    </PaginationItem>
                   ))}
-
-                  <PaginationItem>
-                    <PaginationNext
-                      href="#"
-                      onClick={() =>
-                        setCurrentPage((p) => Math.min(p + 1, totalPages))
-                      }
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
+                </TableBody>
+              </Table>
             </div>
-          )}
-        </div>
+
+            {totalPages > 1 && (
+              <div className="mt-4 flex justify-center">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <Button
+                        variant="ghost"
+                        onClick={() =>
+                          setCurrentPage((p) => Math.max(1, p - 1))
+                        }
+                        disabled={currentPage === 1}
+                      >
+                        Previous
+                      </Button>
+                    </PaginationItem>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                      (page) => (
+                        <PaginationItem key={page}>
+                          <PaginationLink
+                            onClick={() => setCurrentPage(page)}
+                            isActive={currentPage === page}
+                          >
+                            {page}
+                          </PaginationLink>
+                        </PaginationItem>
+                      )
+                    )}
+                    <PaginationItem>
+                      <Button
+                        variant="ghost"
+                        onClick={() =>
+                          setCurrentPage((p) => Math.min(totalPages, p + 1))
+                        }
+                        disabled={currentPage === totalPages}
+                      >
+                        Next
+                      </Button>
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            )}
+          </>
+        )}
+
+        {selectedBook && (
+          <>
+            <ViewBookDialog
+              book={selectedBook}
+              open={isViewBookOpen}
+              onOpenChange={setIsViewBookOpen}
+            />
+            <EditBookDialog
+              book={selectedBook}
+              open={isEditBookOpen}
+              onOpenChange={setIsEditBookOpen}
+              onSave={handleUpdateBook}
+            />
+          </>
+        )}
       </div>
     </DashboardLayout>
   );
