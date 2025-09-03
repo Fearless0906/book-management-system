@@ -1,23 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db/drizzle";
-import { book } from "@/db/schema";
+import { book, activity } from "@/db/schema";
 import { nanoid } from "nanoid";
 import { eq, sql } from "drizzle-orm";
 import { auth } from "@/lib/auth";
-
-const validateSession = async () => {
-  try {
-    await auth.handler(new Request("http://localhost"));
-    return true;
-  } catch {
-    throw new Error("Unauthorized");
-  }
-};
+import { headers } from "next/headers";
 
 export async function GET(request: NextRequest) {
   try {
-    await validateSession();
-
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "10");
@@ -84,7 +74,11 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    await validateSession();
+    const session = await auth.api.getSession({ headers: headers() });
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await request.json();
 
     const {
@@ -130,16 +124,27 @@ export async function POST(request: NextRequest) {
 
     const [insertedBook] = await db.insert(book).values(newBook).returning();
 
+    await db.insert(activity).values({
+      id: nanoid(),
+      type: "add",
+      action: "Book added",
+      item: insertedBook.title,
+      userId: session.user.id,
+    });
+
     return NextResponse.json(insertedBook, { status: 201 });
   } catch (error) {
-    console.error("Error adding book:", error);
     return NextResponse.json({ error: "Failed to add book" }, { status: 500 });
   }
 }
 
 export async function PUT(request: NextRequest) {
   try {
-    await validateSession();
+    const session = await auth.api.getSession({ headers: headers() });
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await request.json();
 
     const {
@@ -154,6 +159,7 @@ export async function PUT(request: NextRequest) {
       pages,
       rating,
       status,
+      borrowedBy,
     } = body;
 
     if (!id) {
@@ -163,22 +169,14 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Basic validation
-    if (!title || !author || !category) {
-      return NextResponse.json(
-        { error: "Title, author, and category are required" },
-        { status: 400 }
-      );
-    }
-
     // Check if book exists
-    const existingBook = await db
+    const [existingBook] = await db
       .select()
       .from(book)
       .where(eq(book.id, id))
       .limit(1);
 
-    if (!existingBook.length) {
+    if (!existingBook) {
       return NextResponse.json({ error: "Book not found" }, { status: 404 });
     }
 
@@ -197,13 +195,38 @@ export async function PUT(request: NextRequest) {
         rating: rating || null,
         status: status || "Available",
         updatedAt: new Date(),
+        borrowedBy: borrowedBy || null,
+        borrowedAt: status === 'Borrowed' ? new Date() : null,
+        dueDate:
+          status === 'Borrowed'
+            ? new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
+            : null,
       })
       .where(eq(book.id, id))
       .returning();
 
+    if (existingBook.status !== status) {
+      if (status === "Borrowed") {
+        await db.insert(activity).values({
+          id: nanoid(),
+          type: "borrow",
+          action: "Book borrowed",
+          item: updatedBook.title,
+          userId: session.user.id,
+        });
+      } else if (status === "Available" && existingBook.status === "Borrowed") {
+        await db.insert(activity).values({
+          id: nanoid(),
+          type: "return",
+          action: "Book returned",
+          item: updatedBook.title,
+          userId: session.user.id,
+        });
+      }
+    }
+
     return NextResponse.json(updatedBook);
   } catch (error) {
-    console.error("Error updating book:", error);
     return NextResponse.json(
       { error: "Failed to update book" },
       { status: 500 }
@@ -213,7 +236,11 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    await validateSession();
+    const session = await auth.api.getSession({ headers: headers() });
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
 
@@ -249,7 +276,6 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json(deletedBook);
   } catch (error) {
-    console.error("Error deleting book:", error);
     return NextResponse.json(
       { error: "Failed to delete book" },
       { status: 500 }

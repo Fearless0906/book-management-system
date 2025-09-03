@@ -1,7 +1,7 @@
 "use client";
 
 import { Book } from "@/types/types";
-import { BookFormData, PaginatedResponse } from "@/lib/api";
+import { BookFormData, PaginatedResponse } from "@/types/types";
 import {
   Pagination,
   PaginationContent,
@@ -15,7 +15,7 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { BooksTable } from "@/components/BooksTable";
+import { BooksTable } from "@/components/tables/BooksTable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AddBookDialog } from "@/components/modals/AddBookDialog";
@@ -29,16 +29,19 @@ import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useBooks } from "@/hooks/useBooks";
+import { useSearchParams } from "next/navigation";
 
 export default function BooksPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
+  const [isAddBookOpen, setIsAddBookOpen] = useState(false);
   const [isViewBookOpen, setIsViewBookOpen] = useState(false);
   const [isEditBookOpen, setIsEditBookOpen] = useState(false);
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const rowsPerPage = 10;
 
+  const searchParams = useSearchParams();
   const debouncedSearch = useDebounce(searchTerm, 300);
 
   const {
@@ -60,6 +63,12 @@ export default function BooksPage() {
     refetch: () => void;
   };
 
+  useEffect(() => {
+    if (searchParams.get("add") === "true") {
+      setIsAddBookOpen(true);
+    }
+  }, [searchParams]);
+
   // Show loading state during initial load and subsequent fetches
   const loading = isLoading || isFetching;
 
@@ -76,6 +85,7 @@ export default function BooksPage() {
       await createBook(bookData);
       await refetch();
       toast.success("Book added successfully");
+      setIsAddBookOpen(false);
     } catch (error) {
       console.error("Error adding book:", error);
       toast.error("Failed to add book");
@@ -184,7 +194,7 @@ export default function BooksPage() {
           </div>
           <div className="flex gap-2">
             <ImportBooksDialog onAddBook={handleAddBook} />
-            <AddBookDialog onAddBook={handleAddBook} />
+            <AddBookDialog onAddBook={handleAddBook} open={isAddBookOpen} onOpenChange={setIsAddBookOpen} />
           </div>
         </div>
 

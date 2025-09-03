@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +18,8 @@ import { Textarea } from "../ui/textarea";
 
 interface AddBookDialogProps {
   onAddBook: (book: BookFormData) => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export interface BookFormData {
@@ -33,8 +35,8 @@ export interface BookFormData {
   status?: "Available" | "Borrowed" | "Reserved";
 }
 
-export function AddBookDialog({ onAddBook }: AddBookDialogProps) {
-  const [open, setOpen] = useState(false);
+export function AddBookDialog({ onAddBook, open: controlledOpen, onOpenChange }: AddBookDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
   const [formData, setFormData] = useState<BookFormData>({
     title: "",
     author: "",
@@ -47,6 +49,15 @@ export function AddBookDialog({ onAddBook }: AddBookDialogProps) {
     rating: undefined,
     status: "Available",
   });
+
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setOpen = onOpenChange || setInternalOpen;
+
+  useEffect(() => {
+    if (controlledOpen !== undefined) {
+      setInternalOpen(controlledOpen);
+    }
+  }, [controlledOpen]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

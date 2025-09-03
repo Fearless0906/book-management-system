@@ -1,49 +1,43 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { EmptyState } from "@/components/dashboard/EmptyState";
-import { UserList } from "@/components/UserList";
+import { UsersTable } from "@/components/UsersTable";
 import { AddUserDialog } from "@/components/modals/AddUserDialog";
 import { EditUserDialog } from "@/components/modals/EditUserDialog";
-import { Plus, UserCheck } from "lucide-react";
+import { Plus, UserCheck, Search, RefreshCcw } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  emailVerified: boolean;
-  createdAt: string;
-}
+import { deleteUser } from "@/lib/api";
+import { useDebounce } from "@/hooks/useDebounce";
+import { useUsers } from "@/hooks/useUsers";
+import { User } from "@/types/types";
 
 export default function UsersPage() {
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
-  const fetchUsers = async () => {
-    try {
-      const response = await fetch("/api/users");
-      if (!response.ok) {
-        throw new Error("Failed to fetch users");
-      }
-      const data = await response.json();
-      setUsers(data.users);
-      setLoading(false);
-    } catch (error) {
-      console.error("Error fetching users:", error);
-      toast.error("Failed to load users");
-      setLoading(false);
-    }
-  };
+  const debouncedSearch = useDebounce(searchTerm, 300);
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
+  const {
+    data: userData,
+    isLoading,
+    isFetching,
+    isError: error,
+    refetch,
+  } = useUsers({
+    search: debouncedSearch || undefined,
+  });
+
+  // Show loading state during initial load and subsequent fetches
+  const loading = isLoading || isFetching;
+
+  const users = userData?.users || [];
 
   const handleEditUser = (user: User) => {
     setSelectedUser(user);
@@ -51,40 +45,59 @@ export default function UsersPage() {
   };
 
   const handleUserAdded = () => {
-    fetchUsers();
+    refetch();
   };
 
   const handleUserUpdated = () => {
-    fetchUsers();
+    refetch();
   };
 
-  const handleUserDeleted = () => {
-    fetchUsers();
+  const handleDeleteUser = async (userId: string) => {
+    try {
+      await deleteUser(userId);
+      toast.success("User deleted successfully");
+      refetch();
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      toast.error("Failed to delete user");
+    }
   };
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-              User Management
-            </h2>
-            <p className="text-gray-600 dark:text-gray-400">
-              Manage library users and permissions
-            </p>
+      <div className="container mx-auto py-10">
+        <div className="flex justify-between items-center mb-6">
+          <div className="flex items-center gap-4">
+            <div className="relative w-64">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search users..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-8"
+              />
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => refetch()}
+              disabled={loading}
+            >
+              <RefreshCcw
+                className={`h-4 w-4 transition-transform ${loading ? "animate-spin" : ""}`}
+              />
+            </Button>
           </div>
-          <Button onClick={() => setAddDialogOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add User
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => setAddDialogOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add User
+            </Button>
+          </div>
         </div>
 
-        {loading ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white" />
-          </div>
-        ) : users.length === 0 ? (
+        {error ? (
+          <div className="text-center text-red-500">Error loading users</div>
+        ) : users.length === 0 && !loading && !searchTerm ? (
           <EmptyState
             title="No Users Found"
             description="Add your first user to get started with the library management system."
@@ -93,26 +106,29 @@ export default function UsersPage() {
             onButtonClick={() => setAddDialogOpen(true)}
           />
         ) : (
-          <UserList
+          <UsersTable
             users={users}
+            loading={loading}
             onEditUser={handleEditUser}
-            onUserDeleted={handleUserDeleted}
+            onDeleteUser={handleDeleteUser}
+          />
+        )}
+
+        <AddUserDialog
+          open={addDialogOpen}
+          onOpenChange={setAddDialogOpen}
+          onUserAdded={handleUserAdded}
+        />
+
+        {selectedUser && (
+          <EditUserDialog
+            open={editDialogOpen}
+            onOpenChange={setEditDialogOpen}
+            onUserUpdated={handleUserUpdated}
+            user={selectedUser}
           />
         )}
       </div>
-
-      <AddUserDialog
-        open={addDialogOpen}
-        onOpenChange={setAddDialogOpen}
-        onUserAdded={handleUserAdded}
-      />
-
-      <EditUserDialog
-        open={editDialogOpen}
-        onOpenChange={setEditDialogOpen}
-        onUserUpdated={handleUserUpdated}
-        user={selectedUser}
-      />
     </DashboardLayout>
   );
 }

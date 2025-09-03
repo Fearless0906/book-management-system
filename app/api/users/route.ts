@@ -1,9 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { db } from "@/db/drizzle";
-import { user, book } from "@/db/schema";
+import { user, book, activity } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { and, eq, ilike, not, sql } from "drizzle-orm";
 import { z } from "zod";
+import { nanoid } from "nanoid";
+import { headers } from "next/headers";
 
 // Validation schemas
 const userCreateSchema = z.object({
@@ -15,36 +17,8 @@ const userUpdateSchema = userCreateSchema.extend({
   id: z.string().uuid("Invalid user ID"),
 });
 
-// Helper function to validate session
-const validateSession = async () => {
+export async function GET(request: NextRequest) {
   try {
-    await auth.handler(new Request("http://localhost"));
-    return true;
-  } catch {
-    throw new Error("Unauthorized");
-  }
-};
-
-// Helper function to handle errors
-const handleError = (error: unknown) => {
-  if (error instanceof z.ZodError) {
-    const message = error.issues[0]?.message || "Validation error";
-    return NextResponse.json({ error: message }, { status: 400 });
-  }
-  if (error instanceof Error) {
-    if (error.message === "Unauthorized") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    return NextResponse.json({ error: error.message }, { status: 400 });
-  }
-  console.error("Error:", error);
-  return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
-};
-
-export async function GET(request: Request) {
-  try {
-    await validateSession();
-
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search");
     const page = parseInt(searchParams.get("page") || "1");
@@ -93,13 +67,16 @@ export async function GET(request: Request) {
       },
     });
   } catch (error) {
-    return handleError(error);
+    return NextResponse.json({ error: "Failed to fetch users" }, { status: 500 });
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    await validateSession();
+    const session = await auth.api.getSession({ headers: headers() });
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const body = await request.json();
     const validatedData = userCreateSchema.parse(body);
@@ -112,7 +89,10 @@ export async function POST(request: Request) {
       .limit(1);
 
     if (existingUser) {
-      throw new Error("Email already registered");
+      return NextResponse.json(
+        { error: "Email already registered" },
+        { status: 400 }
+      );
     }
 
     const [newUser] = await db
@@ -123,15 +103,33 @@ export async function POST(request: Request) {
       })
       .returning();
 
+    await db.insert(activity).values({
+      id: nanoid(),
+      type: "register",
+      action: "New user registered",
+      item: newUser.name,
+      userId: session.user.id,
+    });
+
     return NextResponse.json(newUser);
   } catch (error) {
-    return handleError(error);
+    if (error instanceof z.ZodError) {
+      const message = error.issues[0]?.message || "Validation error";
+      return NextResponse.json({ error: message }, { status: 400 });
+    }
+    return NextResponse.json(
+      { error: "Failed to create user" },
+      { status: 500 }
+    );
   }
 }
 
-export async function PUT(request: Request) {
+export async function PUT(request: NextRequest) {
   try {
-    await validateSession();
+    const session = await auth.api.getSession({ headers: headers() });
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const body = await request.json();
     const validatedData = userUpdateSchema.parse(body);
@@ -149,7 +147,10 @@ export async function PUT(request: Request) {
       .limit(1);
 
     if (existingUser) {
-      throw new Error("Email already taken by another user");
+      return NextResponse.json(
+        { error: "Email already taken by another user" },
+        { status: 400 }
+      );
     }
 
     const [updatedUser] = await db
@@ -163,24 +164,34 @@ export async function PUT(request: Request) {
       .returning();
 
     if (!updatedUser) {
-      throw new Error("User not found");
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     return NextResponse.json(updatedUser);
   } catch (error) {
-    return handleError(error);
+    if (error instanceof z.ZodError) {
+      const message = error.issues[0]?.message || "Validation error";
+      return NextResponse.json({ error: message }, { status: 400 });
+    }
+    return NextResponse.json(
+      { error: "Failed to update user" },
+      { status: 500 }
+    );
   }
 }
 
-export async function DELETE(request: Request) {
+export async function DELETE(request: NextRequest) {
   try {
-    await validateSession();
+    const session = await auth.api.getSession({ headers: headers() });
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
 
     if (!id) {
-      throw new Error("User ID is required");
+      return NextResponse.json({ error: "User ID is required" }, { status: 400 });
     }
 
     // Check if user exists
@@ -191,20 +202,7 @@ export async function DELETE(request: Request) {
       .limit(1);
 
     if (!existingUser) {
-      throw new Error("User not found");
-    }
-
-    // Check if user has any borrowed books
-    const [hasBorrowedBooks] = await db
-      .select({
-        id: book.id,
-      })
-      .from(book)
-      .where(eq(book.borrowedBy, id))
-      .limit(1);
-
-    if (hasBorrowedBooks) {
-      throw new Error("Cannot delete user with borrowed books");
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     const [deletedUser] = await db
@@ -214,6 +212,9 @@ export async function DELETE(request: Request) {
 
     return NextResponse.json(deletedUser);
   } catch (error) {
-    return handleError(error);
+    return NextResponse.json(
+      { error: "Failed to delete user" },
+      { status: 500 }
+    );
   }
 }

@@ -11,6 +11,7 @@ import {
   Menu,
   Bell,
   Search,
+  Activity,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -31,6 +32,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     { id: 'dashboard', label: 'Dashboard', icon: Home, description: 'Overview and statistics', href: '/dashboard' },
     { id: 'books', label: 'Books', icon: BookOpen, description: 'Manage your book collection', href: '/dashboard/books' },
     { id: 'users', label: 'Users', icon: Users, description: 'User management', href: '/dashboard/users' },
+    { id: 'activity', label: 'Activity', icon: Activity, description: 'Recent system activities', href: '/dashboard/activity' },
     { id: 'analytics', label: 'Analytics', icon: BarChart3, description: 'Reports and insights', href: '/dashboard/analytics' },
     { id: 'settings', label: 'Settings', icon: Settings, description: 'System configuration', href: '/dashboard/settings' },
   ];
@@ -39,52 +41,52 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const showSearch = pathname !== '/dashboard';
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-screen bg-gray-50 dark:bg-gray-900 font-sans antialiased">
       {/* Sidebar */}
-      <div className={`${sidebarCollapsed ? 'w-16' : 'w-64'} transition-all duration-300 ease-in-out bg-sidebar border-r border-border flex flex-col`}>
+      <div className={`${sidebarCollapsed ? 'w-16' : 'w-64'} transition-all duration-300 ease-in-out bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col shadow-lg`}>
         {/* Sidebar Header */}
-        <div className="p-4 border-b border-border">
+        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center shadow-lg">
+            <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shadow-md">
               <BookOpen className="w-5 h-5 text-white" />
             </div>
             {!sidebarCollapsed && (
               <div>
-                <h1 className="text-lg font-bold text-sidebar-foreground">BMS</h1>
-                <p className="text-xs text-sidebar-foreground/70">Book Management System</p>
+                <h1 className="text-xl font-extrabold text-gray-900 dark:text-white">BMS</h1>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Book Management System</p>
               </div>
             )}
           </div>
         </div>
 
         {/* Sidebar Navigation */}
-        <div className="flex-1 p-2">
-          <div className="space-y-1">
+        <div className="flex-1 p-3 overflow-y-auto">
+          <nav className="space-y-1">
             {sidebarItems.map((item) => (
               <button
                 key={item.id}
                 onClick={() => router.push(item.href)}
-                className={`w-full flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                className={`w-full flex items-center space-x-3 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 group ${
                   pathname === item.href
-                    ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                    : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 shadow-sm'
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
                 }`}
                 title={sidebarCollapsed ? item.label : undefined}
               >
-                <item.icon className="h-5 w-5 flex-shrink-0" />
+                <item.icon className={`h-5 w-5 flex-shrink-0 ${pathname === item.href ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300'}`} />
                 {!sidebarCollapsed && (
                   <div className="flex flex-col items-start">
                     <span>{item.label}</span>
-                    <span className="text-xs text-sidebar-foreground/70">{item.description}</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">{item.description}</span>
                   </div>
                 )}
               </button>
             ))}
-          </div>
+          </nav>
         </div>
 
         {/* Sidebar Footer */}
-        <div className="p-2 border-t border-border">
+        <div className="p-4 border-t border-gray-200 dark:border-gray-700">
           <Logout collapsed={sidebarCollapsed} />
         </div>
       </div>
@@ -92,19 +94,19 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <header className="bg-background border-b border-border px-6 py-4">
+        <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-3 shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                className="h-8 w-8"
+                className="h-9 w-9 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
               >
-                <Menu className="h-4 w-4" />
+                <Menu className="h-5 w-5" />
               </Button>
               <div>
-                <h2 className="text-lg font-semibold text-foreground">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
                   {currentPage?.label || 'Dashboard'}
                 </h2>
               </div>
@@ -113,14 +115,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             <div className="flex items-center space-x-4">
               {showSearch && (
                 <div className="relative hidden md:block">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                  <Input placeholder="Search..." className="pl-10 w-64" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Input placeholder="Search..." className="pl-10 w-64 bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500" />
                 </div>
               )}
               
-              <Button variant="ghost" size="sm" className="relative">
+              <Button variant="ghost" size="icon" className="relative text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                 <Bell className="h-5 w-5" />
-                <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full"></span>
+                <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 bg-red-500 rounded-full border-2 border-white dark:border-gray-800"></span>
               </Button>
               
               <UserProfile />
@@ -129,7 +131,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         </header>
 
         {/* Main Content */}
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-y-auto p-6 bg-gray-50 dark:bg-gray-900">
           {children}
         </main>
       </div>

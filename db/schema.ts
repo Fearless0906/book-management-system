@@ -72,7 +72,7 @@ export const book = pgTable("book", {
   pages: integer("pages"),
   rating: decimal("rating", { precision: 2, scale: 1 }),
   status: text("status").notNull().$defaultFn(() => "Available"), // Available, Borrowed, Reserved
-  borrowedBy: text("borrowed_by").references(() => user.id),
+  borrowedBy: text("borrowed_by").references(() => user.id, { onDelete: "set null" }),
   borrowedAt: timestamp("borrowed_at"),
   dueDate: timestamp("due_date"),
   createdAt: timestamp("created_at")
@@ -83,4 +83,15 @@ export const book = pgTable("book", {
     .notNull(),
 });
 
-export const schema = { user, session, account, verification, book }
+export const activity = pgTable("activity", {
+  id: text("id").primaryKey(),
+  type: text("type").notNull(), // e.g., 'borrow', 'return', 'register', 'add'
+  action: text("action").notNull(), // e.g., 'Book borrowed', 'Book returned'
+  item: text("item").notNull(), // e.g., book title or user name
+  userId: text("user_id").references(() => user.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at")
+    .$defaultFn(() => new Date())
+    .notNull(),
+});
+
+export const schema = { user, session, account, verification, book, activity }

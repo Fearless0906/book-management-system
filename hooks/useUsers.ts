@@ -1,13 +1,13 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { type FetchBooksOptions } from "@/types/types";
-import { fetchBooks } from "@/lib/api";
+import { type FetchUsersOptions } from "@/types/types";
+import { fetchUsers } from "@/lib/api";
 
-export function useBooks(options: FetchBooksOptions = {}) {
+export function useUsers(options: FetchUsersOptions = {}) {
   return useQuery({
-    queryKey: ["books", options],
-    queryFn: () => fetchBooks(options),
+    queryKey: ["users", options],
+    queryFn: () => fetchUsers(options),
     placeholderData: (previousData) => previousData,
     staleTime: 1000 * 60, // 1 minute
     refetchOnWindowFocus: false, // Prevent unnecessary refetches
