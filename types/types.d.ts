@@ -22,3 +22,31 @@ export interface Book {
     email: string;
   };
 }
+
+export interface Activity {
+  id: string;
+  type: string;
+  action: string;
+  item: string;
+  createdAt: string;
+  user: {
+    id: string;
+    name: string;
+    image: string | null;
+  } | null;
+}
+
+export interface PaginatedActivityResponse {
+  activities: Activity[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
+
+export interface FetchActivitiesOptions {
+  page?: number;
+  limit?: number;
+}

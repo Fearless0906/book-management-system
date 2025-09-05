@@ -37,10 +37,21 @@ export async function GET(request: NextRequest) {
       whereClause = sql.join(conditions, sql` AND `);
     }
 
+    const sort = searchParams.get("sort");
+
+    let orderByClause;
+    if (sort) {
+      const [field, direction] = sort.split(':');
+      if (field === 'createdAt' && (direction === 'asc' || direction === 'desc')) {
+        orderByClause = direction === 'asc' ? sql`${book.createdAt} ASC` : sql`${book.createdAt} DESC`;
+      }
+    }
+
     const books = await db
       .select()
       .from(book)
       .where(whereClause || undefined)
+      .orderBy(orderByClause || sql`${book.createdAt} DESC`)
       .limit(limit)
       .offset(offset);
 

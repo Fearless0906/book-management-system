@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { UserProfile } from '@/components/UserProfile';
+import { ModeToggle } from "@/components/themeToggle";
 import { Bell, Search } from 'lucide-react';
 import { useState } from 'react';
 
@@ -44,6 +45,8 @@ export function Header({ title, showSearch = true }: HeaderProps) {
             <Bell className="h-5 w-5" />
             <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full"></span>
           </Button>
+
+          <ModeToggle />
           
           <UserProfile />
         </div>

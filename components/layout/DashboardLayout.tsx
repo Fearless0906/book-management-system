@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Logout } from "@/components/Logout";
 import { UserProfile } from "@/components/UserProfile";
+import { ModeToggle } from "@/components/themeToggle";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -178,6 +179,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               </Button>
 
               <UserProfile />
+              <ModeToggle />
             </div>
           </div>
         </header>

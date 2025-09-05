@@ -1,6 +1,5 @@
 "use client";
 
-import { Activity } from "@/types/types";
 import {
   Table,
   TableBody,
@@ -11,6 +10,7 @@ import {
 } from "@/components/ui/table";
 import { Loader2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Activity } from "@/types/types";
 
 interface ActivityTableProps {
   activities: Activity[];

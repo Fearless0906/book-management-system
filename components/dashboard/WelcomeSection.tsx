@@ -1,15 +1,32 @@
-import { Card } from '@/components/ui/card';
+import { Button } from "@/components/ui/button";
+import { PlusCircle, UserPlus } from "lucide-react";
 
 interface WelcomeSectionProps {
   title: string;
   subtitle: string;
+  onAddBook: () => void;
+  onAddUser: () => void;
 }
 
-export function WelcomeSection({ title, subtitle }: WelcomeSectionProps) {
+export function WelcomeSection({ title, subtitle, onAddBook, onAddUser }: WelcomeSectionProps) {
   return (
-    <Card className="bg-gradient-to-br from-blue-600 to-purple-700 rounded-xl p-8 text-white shadow-lg transform transition-all duration-300 hover:scale-[1.01]">
-      <h2 className="text-3xl font-extrabold mb-2 tracking-tight">{title}</h2>
-      <p className="text-blue-100 text-lg opacity-90">{subtitle}</p>
-    </Card>
+    <div className="p-8 rounded-2xl bg-gray-900/10 dark:bg-white/10 border border-white/20 backdrop-blur-lg">
+      <div className="flex flex-col md:flex-row items-center justify-between">
+        <div className="mb-6 md:mb-0">
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">{title}</h2>
+          <p className="text-gray-600 dark:text-gray-300 mt-1">{subtitle}</p>
+        </div>
+        <div className="flex items-center gap-4">
+          <Button onClick={onAddBook} variant="outline" className="bg-white/50 dark:bg-gray-800/50 border-0">
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Add Book
+          </Button>
+          <Button onClick={onAddUser} variant="outline" className="bg-white/50 dark:bg-gray-800/50 border-0">
+            <UserPlus className="mr-2 h-4 w-4" />
+            Add User
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 }

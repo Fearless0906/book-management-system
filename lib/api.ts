@@ -172,3 +172,52 @@ export const fetchActivities = async ({
     throw new Error(err instanceof Error ? err.message : "An error occurred");
   }
 };
+
+// Analytics functions
+export const fetchMostBorrowedBooks = async (): Promise<{ title: string; count: number }[]> => {
+  try {
+    const response = await fetch("/api/analytics?type=most-borrowed-books");
+    if (!response.ok) {
+      throw new Error("Failed to fetch most borrowed books");
+    }
+    return response.json();
+  } catch (err) {
+    throw new Error(err instanceof Error ? err.message : "An error occurred");
+  }
+};
+
+export const fetchBookStatusDistribution = async (): Promise<{ status: string; count: number }[]> => {
+  try {
+    const response = await fetch("/api/analytics?type=book-status-distribution");
+    if (!response.ok) {
+      throw new Error("Failed to fetch book status distribution");
+    }
+    return response.json();
+  } catch (err) {
+    throw new Error(err instanceof Error ? err.message : "An error occurred");
+  }
+};
+
+export const fetchActivityOverTime = async (): Promise<{ date: string; count: number }[]> => {
+  try {
+    const response = await fetch("/api/analytics?type=activity-over-time");
+    if (!response.ok) {
+      throw new Error("Failed to fetch activity over time");
+    }
+    return response.json();
+  } catch (err) {
+    throw new Error(err instanceof Error ? err.message : "An error occurred");
+  }
+};
+
+export const fetchDashboardStats = async (): Promise<any> => {
+  try {
+    const response = await fetch("/api/stats");
+    if (!response.ok) {
+      throw new Error("Failed to fetch dashboard stats");
+    }
+    return response.json();
+  } catch (err) {
+    throw new Error(err instanceof Error ? err.message : "An error occurred");
+  }
+};
