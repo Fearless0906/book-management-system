@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Star, Eye, Edit2, Trash2, Loader2 } from "lucide-react";
+import { Star, Eye, Edit2, Trash2, Loader2, BookOpen } from "lucide-react";
 
 interface BooksTableProps {
   books: Book[];
@@ -18,6 +18,7 @@ interface BooksTableProps {
   onViewBook: (book: Book) => void;
   onEditBook: (book: Book) => void;
   onDeleteBook: (id: string) => void;
+  onBorrowBook: (book: Book) => void; // New prop
 }
 
 export function BooksTable({
@@ -26,14 +27,10 @@ export function BooksTable({
   onViewBook,
   onEditBook,
   onDeleteBook,
+  onBorrowBook, // New prop
 }: BooksTableProps) {
   return (
-    <div className="rounded-md border relative">
-      {loading && (
-        <div className="absolute inset-0 bg-white/50 z-10 flex items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin" />
-        </div>
-      )}
+    <div className="rounded-md border">
       <Table>
         <TableHeader>
           <TableRow>
@@ -46,7 +43,13 @@ export function BooksTable({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {!loading && (!books || books.length === 0) ? (
+          {loading ? (
+            <TableRow>
+              <TableCell colSpan={6} className="h-32 text-center">
+                <Loader2 className="h-8 w-8 animate-spin mx-auto" />
+              </TableCell>
+            </TableRow>
+          ) : !books || books.length === 0 ? (
             <TableRow>
               <TableCell colSpan={6} className="text-center h-32">
                 No books found
@@ -71,6 +74,15 @@ export function BooksTable({
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
+                    {book.status === "Available" && ( // Only show borrow button if available
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => onBorrowBook(book)}
+                      >
+                        <BookOpen className="h-4 w-4" />
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       size="icon"

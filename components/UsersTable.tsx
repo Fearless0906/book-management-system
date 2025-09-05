@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
 
 interface User {
   id: string;
@@ -36,6 +37,7 @@ interface User {
   email: string;
   emailVerified: boolean;
   createdAt: string;
+  borrowedBooksCount?: number;
 }
 
 interface UsersTableProps {
@@ -68,33 +70,39 @@ export function UsersTable({
 
   return (
     <>
-      <div className="rounded-md border relative">
-        {loading && (
-          <div className="absolute inset-0 bg-background/50 backdrop-blur-sm z-10 flex items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin" />
-          </div>
-        )}
+      <div className="rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Borrowed Books</TableHead>
               <TableHead>Join Date</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {!loading && (!users || users.length === 0) ? (
+            {loading ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center h-32">
+                <TableCell colSpan={6} className="h-32 text-center">
+                  <Loader2 className="h-8 w-8 animate-spin mx-auto" />
+                </TableCell>
+              </TableRow>
+            ) : !users || users.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center h-32">
                   No users found
                 </TableCell>
               </TableRow>
             ) : (
               users.map((user) => (
                 <TableRow key={user.id}>
-                  <TableCell className="font-medium">{user.name}</TableCell>
+                  <TableCell className="font-medium">
+                    <Link href={`/dashboard/users/${user.id}`} className="hover:underline">
+                      {user.name}
+                    </Link>
+                  </TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
@@ -111,6 +119,7 @@ export function UsersTable({
                       )}
                     </div>
                   </TableCell>
+                  <TableCell>{user.borrowedBooksCount}</TableCell>
                   <TableCell>
                     {new Date(user.createdAt).toLocaleDateString(undefined, {
                       year: "numeric",

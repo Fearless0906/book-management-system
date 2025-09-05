@@ -42,17 +42,9 @@ function timeSince(date: Date) {
   return Math.floor(seconds) + " seconds ago";
 }
 
-export function ActivityTable({
-  activities,
-  loading,
-}: ActivityTableProps) {
+export function ActivityTable({ activities, loading }: ActivityTableProps) {
   return (
-    <div className="rounded-md border relative">
-      {loading && (
-        <div className="absolute inset-0 bg-white/50 z-10 flex items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin" />
-        </div>
-      )}
+    <div className="rounded-md border">
       <Table>
         <TableHeader>
           <TableRow>
@@ -63,10 +55,10 @@ export function ActivityTable({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {!loading && (!activities || activities.length === 0) ? (
+          {loading ? (
             <TableRow>
-              <TableCell colSpan={4} className="text-center h-32">
-                No activities found
+              <TableCell colSpan={6} className="h-32 text-center">
+                <Loader2 className="h-8 w-8 animate-spin mx-auto" />
               </TableCell>
             </TableRow>
           ) : (
@@ -76,7 +68,9 @@ export function ActivityTable({
                   <div className="flex items-center gap-2">
                     <Avatar>
                       <AvatarImage src={activity.user?.image ?? undefined} />
-                      <AvatarFallback>{activity.user?.name?.[0] ?? 'A'}</AvatarFallback>
+                      <AvatarFallback>
+                        {activity.user?.name?.[0] ?? "A"}
+                      </AvatarFallback>
                     </Avatar>
                     {activity.user?.name ?? "Unknown"}
                   </div>

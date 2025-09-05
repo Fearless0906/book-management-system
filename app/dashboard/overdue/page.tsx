@@ -1,6 +1,6 @@
 "use client";
 
-import { Activity, PaginatedActivityResponse } from "@/types/types";
+import { Book, PaginatedResponse } from "@/types/types";
 import {
   Pagination,
   PaginationContent,
@@ -13,34 +13,41 @@ import { toast } from "sonner";
 import { useEffect, useState, useCallback } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import useFetch from "@/helpers/useFetch";
-import { fetchActivities } from "@/lib/api";
-import { ActivityTable } from "@/components/tables/ActivityTable";
+import { OverdueBooksTable } from "@/components/tables/OverdueBooksTable"; // Will create this next
 
-export default function ActivityPage() {
+export default function OverdueBooksPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 10;
 
-  const fetchActivitiesCallback = useCallback(() => {
-    return fetchActivities({
-      page: currentPage,
-      limit: rowsPerPage,
-    });
-  }, [currentPage]);
+  const fetchOverdueBooksCallback = useCallback(() => {
+    return fetch(`/api/overdue?page=${currentPage}&limit=${rowsPerPage}`).then(
+      (res) => res.json()
+    );
+  }, [currentPage, rowsPerPage]);
 
-  const { data: activitiesData, loading, error, refetch } = useFetch(
-    fetchActivitiesCallback,
-    [currentPage]
-  );
+  const {
+    data: overdueBooksData,
+    loading,
+    error,
+    refetch,
+  } = useFetch(fetchOverdueBooksCallback, [currentPage, rowsPerPage]);
 
-  const activities = (activitiesData as PaginatedActivityResponse)?.activities || [];
+  const overdueBooks =
+    (overdueBooksData as PaginatedResponse<Book>)?.books || [];
   const { totalPages = 0 } =
-    (activitiesData as PaginatedActivityResponse)?.pagination || {};
+    (overdueBooksData as PaginatedResponse<Book>)?.pagination || {};
+
+  useEffect(() => {
+    if (error) {
+      toast.error("Failed to load overdue books.");
+    }
+  }, [error]);
 
   return (
     <DashboardLayout>
       <div className="container mx-auto py-10">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">Activity Log</h1>
+          <h2 className="text-2xl font-bold">Overdue Books</h2>
           <Button
             variant="outline"
             onClick={() => refetch()}
@@ -56,11 +63,14 @@ export default function ActivityPage() {
 
         {error ? (
           <div className="text-center text-red-500">
-            Error loading activities
+            Error loading overdue books.
           </div>
         ) : (
           <>
-            <ActivityTable activities={activities} loading={loading} />
+            <OverdueBooksTable
+              books={overdueBooks}
+              loading={loading}
+            />
 
             {totalPages > 1 && (
               <div className="mt-4 flex justify-center">

@@ -25,33 +25,31 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "10");
     const offset = (page - 1) * limit;
 
+    const where = search
+      ? and(
+          ilike(user.name, `%${search}%`),
+          ilike(user.email, `%${search}%`)
+        )
+      : undefined;
+
     // Get total count
     const [countResult] = await db
       .select({
         count: sql<number>`cast(count(*) as integer)`,
       })
       .from(user)
-      .where(
-        search
-          ? and(
-              ilike(user.name, `%${search}%`),
-              ilike(user.email, `%${search}%`)
-            )
-          : undefined
-      );
+      .where(where);
 
-    // Get paginated results
+    // Get paginated results with borrowed books count
     const users = await db
-      .select()
+      .select({
+        ...user,
+        borrowedBooksCount: sql<number>`cast(count(${book.id}) as integer)`,
+      })
       .from(user)
-      .where(
-        search
-          ? and(
-              ilike(user.name, `%${search}%`),
-              ilike(user.email, `%${search}%`)
-            )
-          : undefined
-      )
+      .leftJoin(book, and(eq(user.id, book.borrowedBy), eq(book.status, "Borrowed")))
+      .where(where)
+      .groupBy(user.id)
       .limit(limit)
       .offset(offset);
 

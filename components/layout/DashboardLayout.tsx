@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
+import { useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import {
   BookOpen,
   Users,
@@ -12,12 +12,13 @@ import {
   Bell,
   Search,
   Activity,
-} from 'lucide-react';
-
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Logout } from '@/components/Logout';
-import { UserProfile } from '@/components/UserProfile';
+  BookCheck,
+  Clock,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Logout } from "@/components/Logout";
+import { UserProfile } from "@/components/UserProfile";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -29,31 +30,72 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const router = useRouter();
 
   const sidebarItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: Home, description: 'Overview and statistics', href: '/dashboard' },
-    { id: 'books', label: 'Books', icon: BookOpen, description: 'Manage your book collection', href: '/dashboard/books' },
-    { id: 'users', label: 'Users', icon: Users, description: 'User management', href: '/dashboard/users' },
-    { id: 'activity', label: 'Activity', icon: Activity, description: 'Recent system activities', href: '/dashboard/activity' },
-    { id: 'analytics', label: 'Analytics', icon: BarChart3, description: 'Reports and insights', href: '/dashboard/analytics' },
-    { id: 'settings', label: 'Settings', icon: Settings, description: 'System configuration', href: '/dashboard/settings' },
+    { id: "dashboard", label: "Dashboard", icon: Home, href: "/dashboard" },
+    { id: "books", label: "Books", icon: BookOpen, href: "/dashboard/books" },
+    {
+      id: "borrowed",
+      label: "Borrowed",
+      icon: BookCheck,
+      href: "/dashboard/borrowed",
+    }, // New item
+    {
+      id: "overdue",
+      label: "Overdue",
+      icon: Clock,
+      href: "/dashboard/overdue",
+    }, // New item
+    { id: "users", label: "Users", icon: Users, href: "/dashboard/users" },
+    {
+      id: "activity",
+      label: "Activity",
+      icon: Activity,
+      href: "/dashboard/activity",
+    },
+    {
+      id: "analytics",
+      label: "Analytics",
+      icon: BarChart3,
+      href: "/dashboard/analytics",
+    },
+    {
+      id: "settings",
+      label: "Settings",
+      icon: Settings,
+      href: "/dashboard/settings",
+    },
   ];
 
-  const currentPage = sidebarItems.find(item => item.href === pathname);
-  const showSearch = pathname !== '/dashboard';
+  const currentPage = sidebarItems.find((item) => item.href === pathname);
+  const showSearch = pathname !== "/dashboard";
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900 font-sans antialiased">
       {/* Sidebar */}
-      <div className={`${sidebarCollapsed ? 'w-16' : 'w-64'} transition-all duration-300 ease-in-out bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col shadow-lg`}>
+      <div
+        className={`${sidebarCollapsed ? "w-16" : "w-64"} transition-all duration-300 ease-in-out bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col shadow-lg`}
+      >
         {/* Sidebar Header */}
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center space-x-3">
-            <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shadow-md">
+        <div
+          className={`p-4 border-b border-gray-200 dark:border-gray-700 ${
+            sidebarCollapsed ? "flex justify-center" : ""
+          }`}
+        >
+          <div
+            className={`flex items-center ${
+              sidebarCollapsed ? "justify-center" : ""
+            } space-x-3`}
+          >
+            <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shadow-md flex-shrink-0">
               <BookOpen className="w-5 h-5 text-white" />
             </div>
             {!sidebarCollapsed && (
-              <div>
-                <h1 className="text-xl font-extrabold text-gray-900 dark:text-white">BMS</h1>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Book Management System</p>
+              <div className="overflow-hidden">
+                <h1 className="text-xl font-extrabold text-gray-900 dark:text-white truncate">
+                  BMS
+                </h1>
+                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                  Book Management System
+                </p>
               </div>
             )}
           </div>
@@ -66,20 +108,23 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               <button
                 key={item.id}
                 onClick={() => router.push(item.href)}
-                className={`w-full flex items-center space-x-3 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 group ${
+                className={`w-full flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 group ${
+                  sidebarCollapsed ? "justify-center" : "space-x-3"
+                } ${
                   pathname === item.href
-                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 shadow-sm'
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
+                    ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 shadow-sm"
+                    : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white"
                 }`}
                 title={sidebarCollapsed ? item.label : undefined}
               >
-                <item.icon className={`h-5 w-5 flex-shrink-0 ${pathname === item.href ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300'}`} />
-                {!sidebarCollapsed && (
-                  <div className="flex flex-col items-start">
-                    <span>{item.label}</span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">{item.description}</span>
-                  </div>
-                )}
+                <item.icon
+                  className={`h-5 w-5 flex-shrink-0 ${
+                    pathname === item.href
+                      ? "text-blue-600 dark:text-blue-400"
+                      : "text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300"
+                  }`}
+                />
+                {!sidebarCollapsed && <span>{item.label}</span>}
               </button>
             ))}
           </nav>
@@ -107,7 +152,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               </Button>
               <div>
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                  {currentPage?.label || 'Dashboard'}
+                  {currentPage?.label || "Dashboard"}
                 </h2>
               </div>
             </div>
@@ -116,15 +161,22 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               {showSearch && (
                 <div className="relative hidden md:block">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  <Input placeholder="Search..." className="pl-10 w-64 bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500" />
+                  <Input
+                    placeholder="Search..."
+                    className="pl-10 w-64 bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500"
+                  />
                 </div>
               )}
-              
-              <Button variant="ghost" size="icon" className="relative text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+              >
                 <Bell className="h-5 w-5" />
                 <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 bg-red-500 rounded-full border-2 border-white dark:border-gray-800"></span>
               </Button>
-              
+
               <UserProfile />
             </div>
           </div>

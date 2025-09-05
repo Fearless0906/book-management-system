@@ -16,52 +16,57 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { BooksTable } from "@/components/tables/BooksTable";
+import { BooksGrid } from "@/components/tables/BooksGrid";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AddBookDialog } from "@/components/modals/AddBookDialog";
 import { ImportBooksDialog } from "@/components/modals/ImportBooksDialog";
-import { Search, ListFilter, RefreshCcw } from "lucide-react";
-import { createBook, updateBook, deleteBook } from "@/lib/api";
+import { Search, ListFilter, RefreshCcw, LayoutGrid, List } from "lucide-react";
+import { createBook, updateBook, deleteBook, fetchBooks } from "@/lib/api";
 import { toast } from "sonner";
 import { ViewBookDialog } from "@/components/modals/ViewBookDialog";
 import { EditBookDialog } from "@/components/modals/EditBookDialog";
-import { useEffect, useState } from "react";
+import { BorrowBookDialog } from "@/components/modals/BorrowBookDialog"; // New import
+import { useCallback, useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useDebounce } from "@/hooks/useDebounce";
-import { useBooks } from "@/hooks/useBooks";
 import { useSearchParams } from "next/navigation";
+import useFetch from "@/helpers/useFetch";
 
 export default function BooksPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
+  const [view, setView] = useState("table");
   const [isAddBookOpen, setIsAddBookOpen] = useState(false);
   const [isViewBookOpen, setIsViewBookOpen] = useState(false);
   const [isEditBookOpen, setIsEditBookOpen] = useState(false);
+  const [isBorrowBookOpen, setIsBorrowBookOpen] = useState(false); // New state
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const rowsPerPage = 10;
 
   const searchParams = useSearchParams();
   const debouncedSearch = useDebounce(searchTerm, 300);
 
+  const fetchBooksCallback = useCallback(() => {
+    return fetchBooks({
+      page: currentPage,
+      limit: rowsPerPage,
+      search: debouncedSearch || undefined,
+      status: statusFilter !== "All" ? statusFilter : undefined,
+    });
+  }, [currentPage, debouncedSearch, statusFilter]);
+
   const {
     data: booksData,
-    isLoading,
-    isFetching,
-    isError: error,
+    loading,
+    error,
     refetch,
-  } = useBooks({
-    page: currentPage,
-    limit: rowsPerPage,
-    search: debouncedSearch || undefined,
-    status: statusFilter !== "All" ? statusFilter : undefined,
-  }) as {
-    data: PaginatedResponse<Book> | undefined;
-    isLoading: boolean;
-    isFetching: boolean;
-    isError: boolean;
-    refetch: () => void;
-  };
+  } = useFetch(fetchBooksCallback, [
+    currentPage,
+    debouncedSearch,
+    statusFilter,
+  ]);
 
   useEffect(() => {
     if (searchParams.get("add") === "true") {
@@ -69,16 +74,14 @@ export default function BooksPage() {
     }
   }, [searchParams]);
 
-  // Show loading state during initial load and subsequent fetches
-  const loading = isLoading || isFetching;
-
   // Reset to first page when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [debouncedSearch, statusFilter]);
 
-  const books = booksData?.books || [];
-  const { totalPages = 0 } = booksData?.pagination || {};
+  const books = (booksData as PaginatedResponse<Book>)?.books || [];
+  const { totalPages = 0 } =
+    (booksData as PaginatedResponse<Book>)?.pagination || {};
 
   const handleAddBook = async (bookData: BookFormData) => {
     try {
@@ -143,6 +146,34 @@ export default function BooksPage() {
     });
   };
 
+  const handleBorrowBook = (book: Book) => {
+    // New function
+    setSelectedBook(book);
+    setIsBorrowBookOpen(true);
+  };
+
+  const handleConfirmBorrow = async (
+    bookId: string,
+    userId: string,
+    borrowedAt: Date, // Added borrowedAt
+    dueDate: Date
+  ) => {
+    // New function
+    try {
+      await updateBook(bookId, {
+        status: "Borrowed",
+        borrowedBy: userId,
+        borrowedAt: borrowedAt, // Use borrowedAt from dialog
+        dueDate: dueDate,
+      });
+      await refetch();
+      toast.success("Book borrowed successfully");
+    } catch (error) {
+      console.error("Error borrowing book:", error);
+      toast.error("Failed to borrow book");
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="container mx-auto py-10">
@@ -194,7 +225,27 @@ export default function BooksPage() {
           </div>
           <div className="flex gap-2">
             <ImportBooksDialog onAddBook={handleAddBook} />
-            <AddBookDialog onAddBook={handleAddBook} open={isAddBookOpen} onOpenChange={setIsAddBookOpen} />
+            <AddBookDialog
+              onAddBook={handleAddBook}
+              open={isAddBookOpen}
+              onOpenChange={setIsAddBookOpen}
+            />
+            <div className="flex gap-2">
+              <Button
+                variant={view === "table" ? "secondary" : "ghost"}
+                size="icon"
+                onClick={() => setView("table")}
+              >
+                <List className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={view === "grid" ? "secondary" : "ghost"}
+                size="icon"
+                onClick={() => setView("grid")}
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -202,13 +253,25 @@ export default function BooksPage() {
           <div className="text-center text-red-500">Error loading books</div>
         ) : (
           <>
-            <BooksTable
-              books={books}
-              loading={loading}
-              onViewBook={handleViewBook}
-              onEditBook={handleEditBook}
-              onDeleteBook={handleDeleteBook}
-            />
+            {view === "table" ? (
+              <BooksTable
+                books={books}
+                loading={loading}
+                onViewBook={handleViewBook}
+                onEditBook={handleEditBook}
+                onDeleteBook={handleDeleteBook}
+                onBorrowBook={handleBorrowBook}
+              />
+            ) : (
+              <BooksGrid
+                books={books}
+                loading={loading}
+                onViewBook={handleViewBook}
+                onEditBook={handleEditBook}
+                onDeleteBook={handleDeleteBook}
+                onBorrowBook={handleBorrowBook}
+              />
+            )}
 
             {totalPages > 1 && (
               <div className="mt-4 flex justify-center">
@@ -267,6 +330,12 @@ export default function BooksPage() {
               open={isEditBookOpen}
               onOpenChange={setIsEditBookOpen}
               onSave={handleUpdateBook}
+            />
+            <BorrowBookDialog // New dialog
+              book={selectedBook}
+              open={isBorrowBookOpen}
+              onOpenChange={setIsBorrowBookOpen}
+              onBorrow={handleConfirmBorrow}
             />
           </>
         )}

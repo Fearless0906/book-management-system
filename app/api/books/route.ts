@@ -4,7 +4,6 @@ import { book, activity } from "@/db/schema";
 import { nanoid } from "nanoid";
 import { eq, sql } from "drizzle-orm";
 import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 
 export async function GET(request: NextRequest) {
   try {
@@ -74,7 +73,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth.api.getSession({ headers: headers() });
+    const session = await auth.api.getSession({ headers: request.headers });
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -140,7 +139,7 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const session = await auth.api.getSession({ headers: headers() });
+    const session = await auth.api.getSession({ headers: request.headers });
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -160,6 +159,8 @@ export async function PUT(request: NextRequest) {
       rating,
       status,
       borrowedBy,
+      borrowedAt,
+      dueDate,
     } = body;
 
     if (!id) {
@@ -180,28 +181,31 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "Book not found" }, { status: 404 });
     }
 
+    const updateData: any = { updatedAt: new Date() };
+    if (title) updateData.title = title;
+    if (author) updateData.author = author;
+    if (isbn) updateData.isbn = isbn;
+    if (category) updateData.category = category;
+    if (description) updateData.description = description;
+    if (publishedYear) updateData.publishedYear = publishedYear;
+    if (publisher) updateData.publisher = publisher;
+    if (pages) updateData.pages = pages;
+    if (rating) updateData.rating = rating;
+    if (status) updateData.status = status;
+    if (borrowedBy) updateData.borrowedBy = borrowedBy;
+    if (status === "Borrowed") {
+      updateData.borrowedAt = borrowedAt ? new Date(borrowedAt) : new Date();
+      updateData.dueDate = dueDate ? new Date(dueDate) : null;
+    } else {
+      updateData.borrowedAt = null;
+      updateData.dueDate = null;
+      updateData.borrowedBy = null;
+    }
+
     // Update book
     const [updatedBook] = await db
       .update(book)
-      .set({
-        title,
-        author,
-        isbn: isbn || null,
-        category,
-        description: description || null,
-        publishedYear: publishedYear || null,
-        publisher: publisher || null,
-        pages: pages || null,
-        rating: rating || null,
-        status: status || "Available",
-        updatedAt: new Date(),
-        borrowedBy: borrowedBy || null,
-        borrowedAt: status === 'Borrowed' ? new Date() : null,
-        dueDate:
-          status === 'Borrowed'
-            ? new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
-            : null,
-      })
+      .set(updateData)
       .where(eq(book.id, id))
       .returning();
 
@@ -236,7 +240,7 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await auth.api.getSession({ headers: headers() });
+    const session = await auth.api.getSession({ headers: request.headers });
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -251,7 +255,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Check if book exists and is not borrowed
+    // Check if book exists
     const [existingBook] = await db
       .select()
       .from(book)
@@ -260,13 +264,6 @@ export async function DELETE(request: NextRequest) {
 
     if (!existingBook) {
       return NextResponse.json({ error: "Book not found" }, { status: 404 });
-    }
-
-    if (existingBook.status === "Borrowed") {
-      return NextResponse.json(
-        { error: "Cannot delete a borrowed book" },
-        { status: 400 }
-      );
     }
 
     const [deletedBook] = await db

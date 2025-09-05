@@ -1,37 +1,39 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db/drizzle";
-import { activity, user } from "@/db/schema";
-import { eq, desc, sql } from "drizzle-orm";
-import { auth } from "@/lib/auth";
+import { book, user } from "@/db/schema";
+import { eq, sql, desc, and, lt } from "drizzle-orm";
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth.api.getSession({ headers: request.headers });
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "10");
     const offset = (page - 1) * limit;
 
-    const activities = await db
+    const overdueBooks = await db
       .select({
-        id: activity.id,
-        type: activity.type,
-        action: activity.action,
-        item: activity.item,
-        createdAt: activity.createdAt,
+        id: book.id,
+        title: book.title,
+        author: book.author,
+        isbn: book.isbn,
+        category: book.category,
+        borrowedAt: book.borrowedAt,
+        dueDate: book.dueDate,
         user: {
           id: user.id,
           name: user.name,
-          image: user.image,
+          email: user.email,
         },
       })
-      .from(activity)
-      .leftJoin(user, eq(activity.userId, user.id))
-      .orderBy(desc(activity.createdAt))
+      .from(book)
+      .where(
+        and(
+          eq(book.status, "Borrowed"),
+          lt(book.dueDate, new Date()) // dueDate is in the past
+        )
+      )
+      .leftJoin(user, eq(book.borrowedBy, user.id))
+      .orderBy(desc(book.dueDate))
       .limit(limit)
       .offset(offset);
 
@@ -39,12 +41,18 @@ export async function GET(request: NextRequest) {
       .select({
         count: sql<number>`cast(count(*) as integer)`,
       })
-      .from(activity);
+      .from(book)
+      .where(
+        and(
+          eq(book.status, "Borrowed"),
+          lt(book.dueDate, new Date())
+        )
+      );
 
     const totalCount = Number(countResult?.count || 0);
 
     return NextResponse.json({
-      activities,
+      books: overdueBooks,
       pagination: {
         total: totalCount,
         page,
@@ -53,9 +61,9 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Error fetching activities:", error);
+    console.error("Error fetching overdue books:", error);
     return NextResponse.json(
-      { error: "Failed to fetch activities" },
+      { error: "Failed to fetch overdue books" },
       { status: 500 }
     );
   }

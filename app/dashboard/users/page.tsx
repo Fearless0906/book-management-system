@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { EmptyState } from "@/components/dashboard/EmptyState";
@@ -11,10 +11,10 @@ import { Plus, UserCheck, Search, RefreshCcw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 
-import { deleteUser } from "@/lib/api";
+import { deleteUser, fetchUsers } from "@/lib/api";
 import { useDebounce } from "@/hooks/useDebounce";
-import { useUsers } from "@/hooks/useUsers";
-import { User } from "@/types/types";
+import useFetch from "@/helpers/useFetch";
+import { User, PaginatedResponse } from "@/types/types";
 
 export default function UsersPage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -24,18 +24,18 @@ export default function UsersPage() {
 
   const debouncedSearch = useDebounce(searchTerm, 300);
 
+  const fetchUsersCallback = useCallback(() => {
+    return fetchUsers({
+      search: debouncedSearch || undefined,
+    });
+  }, [debouncedSearch]);
+
   const {
     data: userData,
-    isLoading,
-    isFetching,
-    isError: error,
+    loading,
+    error,
     refetch,
-  } = useUsers({
-    search: debouncedSearch || undefined,
-  });
-
-  // Show loading state during initial load and subsequent fetches
-  const loading = isLoading || isFetching;
+  } = useFetch(fetchUsersCallback, [debouncedSearch]);
 
   const users = userData?.users || [];
 
@@ -83,7 +83,9 @@ export default function UsersPage() {
               disabled={loading}
             >
               <RefreshCcw
-                className={`h-4 w-4 transition-transform ${loading ? "animate-spin" : ""}`}
+                className={`h-4 w-4 transition-transform ${
+                  loading ? "animate-spin" : ""
+                }`}
               />
             </Button>
           </div>
