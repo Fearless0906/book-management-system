@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import { type InferSelectModel } from "drizzle-orm";
 import { book, user } from "@/db/schema";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
+
+import { useDebounce } from "@/hooks/useDebounce";
+
 import useFetch from "@/helpers/useFetch";
 import { fetchGlobalSearchResults } from "@/lib/api";
 import {
@@ -18,6 +18,8 @@ import {
 import { Input } from "@/components/ui/input"; // Import Input
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"; // Import Tabs
 import { Search } from "lucide-react"; // Import Search icon
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 type Book = InferSelectModel<typeof book>;
 type User = InferSelectModel<typeof user>;
@@ -39,7 +41,10 @@ export function GlobalSearchResultsOverlay({
   onClose,
 }: GlobalSearchResultsOverlayProps) {
   const [internalSearchQuery, setInternalSearchQuery] = useState(searchQuery);
-  const [filterType, setFilterType] = useState<"all" | "books" | "users">("all");
+  const debouncedSearchQuery = useDebounce(internalSearchQuery, 500);
+  const [filterType, setFilterType] = useState<"all" | "books" | "users">(
+    "all"
+  );
 
   // Sync prop searchQuery with internalSearchQuery when dialog opens or prop changes
   useEffect(() => {
@@ -53,9 +58,9 @@ export function GlobalSearchResultsOverlay({
     loading,
     error,
   } = useFetch(
-    () => fetchGlobalSearchResults(internalSearchQuery),
-    [internalSearchQuery], // Re-fetch when internalSearchQuery changes
-    isOpen && internalSearchQuery.length > 0 // Only fetch if dialog is open and query is not empty
+    () => fetchGlobalSearchResults(debouncedSearchQuery),
+    [debouncedSearchQuery], // Re-fetch when debouncedSearchQuery changes
+    isOpen && debouncedSearchQuery.length > 0 // Only fetch if dialog is open and query is not empty
   );
 
   useEffect(() => {
@@ -68,8 +73,10 @@ export function GlobalSearchResultsOverlay({
 
   if (!isOpen) return null;
 
-  const filteredBooks = filterType === "all" || filterType === "books" ? results?.books : [];
-  const filteredUsers = filterType === "all" || filterType === "users" ? results?.users : [];
+  const filteredBooks =
+    filterType === "all" || filterType === "books" ? results?.books : [];
+  const filteredUsers =
+    filterType === "all" || filterType === "users" ? results?.users : [];
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -91,13 +98,18 @@ export function GlobalSearchResultsOverlay({
           />
         </div>
 
-        <Tabs value={filterType} onValueChange={(value) => setFilterType(value as "all" | "books" | "users")}>
+        {/* <Tabs
+          value={filterType}
+          onValueChange={(value) =>
+            setFilterType(value as "all" | "books" | "users")
+          }
+        >
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="all">All</TabsTrigger>
             <TabsTrigger value="books">Books</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
           </TabsList>
-        </Tabs>
+        </Tabs> */}
 
         {loading && <div className="p-4">Loading search results...</div>}
         {error && (
@@ -106,36 +118,36 @@ export function GlobalSearchResultsOverlay({
 
         {!loading &&
           !error &&
-          ((!filteredBooks || filteredBooks.length === 0) &&
-            (!filteredUsers || filteredUsers.length === 0)) &&
-          internalSearchQuery.length > 0 && (
+          (!filteredBooks || filteredBooks.length === 0) &&
+          (!filteredUsers || filteredUsers.length === 0) &&
+          debouncedSearchQuery.length > 0 && (
             <div className="p-4 text-center text-muted-foreground">
-              No results found for &quot;{internalSearchQuery}&quot;.
+              No results found for &quot;{debouncedSearchQuery}&quot;.
             </div>
           )}
 
         {filteredBooks && filteredBooks.length > 0 && (
           <div className="space-y-4 mt-4">
             <h3 className="text-xl font-semibold">Books</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-2">
               {filteredBooks.map((book) => (
-                <Card key={book.id} className="p-4">
-                  <h4 className="text-lg font-semibold">{book.title}</h4>
-                  <p className="text-sm text-muted-foreground">
-                    by {book.author}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Category: {book.category}
-                  </p>
-                  <Link
-                    href={`/dashboard/books?search=${encodeURIComponent(book.title || "")}`}
-                    passHref
+                <Link
+                  key={book.id}
+                  href={`/dashboard/books?search=${encodeURIComponent(book.title || "")}`}
+                  passHref
+                >
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start h-auto p-2"
                   >
-                    <Button variant="link" className="p-0 h-auto">
-                      View Details
-                    </Button>
-                  </Link>
-                </Card>
+                    <div className="flex flex-col items-start">
+                      <span className="font-semibold">{book.title}</span>
+                      <span className="text-sm text-muted-foreground">
+                        by {book.author}
+                      </span>
+                    </div>
+                  </Button>
+                </Link>
               ))}
             </div>
           </div>
@@ -144,17 +156,25 @@ export function GlobalSearchResultsOverlay({
         {filteredUsers && filteredUsers.length > 0 && (
           <div className="space-y-4 mt-4">
             <h3 className="text-xl font-semibold">Users</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-2">
               {filteredUsers.map((user) => (
-                <Card key={user.id} className="p-4">
-                  <h4 className="text-lg font-semibold">{user.name}</h4>
-                  <p className="text-sm text-muted-foreground">{user.email}</p>
-                  <Link href={`/dashboard/users/${user.id}`} passHref>
-                    <Button variant="link" className="p-0 h-auto">
-                      View Profile
-                    </Button>
-                  </Link>
-                </Card>
+                <Link
+                  key={user.id}
+                  href={`/dashboard/users/${user.id}`}
+                  passHref
+                >
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start h-auto p-2"
+                  >
+                    <div className="flex flex-col items-start">
+                      <span className="font-semibold">{user.name}</span>
+                      <span className="text-sm text-muted-foreground">
+                        {user.email}
+                      </span>
+                    </div>
+                  </Button>
+                </Link>
               ))}
             </div>
           </div>

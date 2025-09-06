@@ -10,14 +10,29 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 
+interface BookStatusData {
+  status: string;
+  count: number;
+}
+
 interface ChartProps {
-  data: any[];
+  data: BookStatusData[];
   loading: boolean;
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: {
+    name: string;
+    value: number;
+    // Add other properties if needed, e.g., dataKey, color
+  }[];
+  label?: string;
 }
 
 const COLORS = ["#4F46E5", "#10B981", "#F59E0B", "#EF4444"];
 
-const CustomTooltip = ({ active, payload }: any) => {
+const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
   if (active && payload && payload.length) {
     return (
       <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">

@@ -3,10 +3,12 @@ import { Card } from "@/components/ui/card";
 import { Activity } from "@/types/types";
 import { BookUp, BookDown, UserPlus, Plus, LucideIcon } from "lucide-react";
 import { formatDistanceToNow } from 'date-fns';
+import { Skeleton } from "@/components/ui/skeleton"; // New import
 
 interface RecentActivityProps {
   activities: Activity[];
   onViewAll?: () => void;
+  loading: boolean; // New prop
 }
 
 const ActivityIcon = ({ type }: { type: string }) => {
@@ -20,7 +22,7 @@ const ActivityIcon = ({ type }: { type: string }) => {
   return <Icon className="h-5 w-5 text-white" />;
 };
 
-export function RecentActivity({ activities, onViewAll }: RecentActivityProps) {
+export function RecentActivity({ activities, onViewAll, loading }: RecentActivityProps) { // Destructure loading
   return (
     <Card className="p-6 rounded-2xl border border-white/20 bg-white/30 dark:bg-gray-800/30 backdrop-blur-lg shadow-md">
       <div className="flex items-center justify-between mb-4">
@@ -30,7 +32,19 @@ export function RecentActivity({ activities, onViewAll }: RecentActivityProps) {
         </Button>
       </div>
       <div className="space-y-6">
-        {activities.length === 0 ? (
+        {loading ? (
+          <div className="space-y-4">
+            {[...Array(3)].map((_, index) => (
+              <div key={index} className="flex items-start gap-4">
+                <Skeleton className="h-10 w-10 rounded-full" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-3 w-1/2" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : activities.length === 0 ? (
           <div className="text-center text-gray-500 dark:text-gray-400 py-16">
             No recent activities found.
           </div>

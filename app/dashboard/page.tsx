@@ -10,9 +10,7 @@ import { RecentBooks } from "@/components/dashboard/RecentBooks";
 import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { OverdueBooksSection } from "@/components/dashboard/OverdueBooksSection";
 import { PopularBooksSection } from "@/components/dashboard/PopularBooksSection";
-import { UserQuickActions } from "@/components/dashboard/UserQuickActions";
 import { BookAvailabilityChart } from "@/components/dashboard/BookAvailabilityChart";
-import { QuickLinks } from "@/components/dashboard/QuickLinks";
 import useFetch from "@/helpers/useFetch";
 import { fetchBooks, fetchActivities, fetchDashboardStats } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -21,12 +19,30 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 export default function Dashboard() {
   const router = useRouter();
 
-  const fetchRecentBooksCallback = useCallback(() => fetchBooks({ limit: 5, sort: 'createdAt:desc' }), []);
-  const fetchActivitiesCallback = useCallback(() => fetchActivities({ limit: 5 }), []);
+  const fetchRecentBooksCallback = useCallback(
+    () => fetchBooks({ limit: 5, sort: "createdAt:desc" }),
+    []
+  );
+  const fetchActivitiesCallback = useCallback(
+    () => fetchActivities({ limit: 5 }),
+    []
+  );
 
-  const { data: statsData, loading: statsLoading, error: statsError } = useFetch(fetchDashboardStats);
-  const { data: booksData, loading: booksLoading, error: booksError } = useFetch(fetchRecentBooksCallback);
-  const { data: activitiesData, loading: activitiesLoading, error: activitiesError } = useFetch(fetchActivitiesCallback);
+  const {
+    data: statsData,
+    loading: statsLoading,
+    error: statsError,
+  } = useFetch(fetchDashboardStats);
+  const {
+    data: booksData,
+    loading: booksLoading,
+    error: booksError,
+  } = useFetch(fetchRecentBooksCallback);
+  const {
+    data: activitiesData,
+    loading: activitiesLoading,
+    error: activitiesError,
+  } = useFetch(fetchActivitiesCallback);
 
   const stats = useMemo(() => {
     if (!statsData) return [];
@@ -102,7 +118,10 @@ export default function Dashboard() {
         <Alert variant="destructive" className="m-6">
           <AlertTitle>Error</AlertTitle>
           <AlertDescription>
-            {statsError?.message || booksError?.message || activitiesError?.message || "Failed to load dashboard data."}
+            {statsError?.message ||
+              booksError?.message ||
+              activitiesError?.message ||
+              "Failed to load dashboard data."}
           </AlertDescription>
         </Alert>
       </DashboardLayout>
@@ -118,8 +137,7 @@ export default function Dashboard() {
           onAddBook={() => router.push("/dashboard/books?add=true")}
           onAddUser={() => router.push("/dashboard/users?add=true")}
         />
-        <StatsGrid stats={stats} />
-        <OverdueBooksSection />
+        <StatsGrid stats={stats} loading={statsLoading} />
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
           <RecentBooks
             books={recentBooks}
@@ -130,11 +148,11 @@ export default function Dashboard() {
           <RecentActivity
             activities={activitiesData?.activities || []}
             onViewAll={() => router.push("/dashboard/activity")}
+            loading={activitiesLoading}
           />
           <PopularBooksSection />
         </div>
-        <UserQuickActions />
-        <QuickLinks />
+        <OverdueBooksSection />
       </div>
     </DashboardLayout>
   );

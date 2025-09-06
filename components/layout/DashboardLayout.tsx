@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense, useCallback } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   BookOpen,
@@ -14,13 +14,34 @@ import {
   Activity,
   BookCheck,
   Clock,
+  XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Logout } from "@/components/Logout";
 import { UserProfile } from "@/components/user/UserProfile";
 import { ModeToggle } from "@/components/themeToggle";
-import { GlobalSearchResultsOverlay } from "@/components/GlobalSearchResultsOverlay";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { NotificationsCenter } from "@/components/dashboard/NotificationsCenter";
+import dynamic from "next/dynamic";
+import useFetch from "@/helpers/useFetch";
+import { fetchActivities } from "@/lib/api";
+import { PaginatedActivityResponse } from "@/types/types";
+import { Badge } from "@/components/ui/badge";
+
+const GlobalSearchResultsOverlay = dynamic(
+  () =>
+    import("@/components/GlobalSearchResultsOverlay").then(
+      (mod) => mod.GlobalSearchResultsOverlay
+    ),
+  { ssr: false }
+);
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -30,8 +51,33 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchOverlayOpen, setIsSearchOverlayOpen] = useState(false);
+  const [clearedNotificationIds, setClearedNotificationIds] = useState<Set<string>>(new Set());
   const pathname = usePathname();
   const router = useRouter();
+
+  const memoizedFetchActivities = useCallback(
+    () => fetchActivities({ limit: 10 }),
+    []
+  );
+
+  const { data: notificationsData, loading: notificationsLoading } = useFetch<PaginatedActivityResponse>(
+    memoizedFetchActivities,
+    []
+  );
+
+  const notifications = (notificationsData?.activities ?? []).filter(
+    (notification) => !clearedNotificationIds.has(notification.id)
+  );
+
+  const handleClearNotification = useCallback((id: string) => {
+    setClearedNotificationIds((prev) => new Set(prev).add(id));
+  }, []);
+
+  const handleClearAllNotifications = useCallback(() => {
+    setClearedNotificationIds(
+      new Set(notificationsData?.activities.map((n) => n.id) ?? [])
+    );
+  }, [notificationsData]);
 
   const handleSearch = () => {
     // This function is primarily for triggering search on Enter key press
@@ -183,7 +229,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 <Menu className="h-5 w-5" />
               </Button>
               <div>
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                <h2
+                  key="dashboard-title"
+                  className="text-xl font-semibold text-gray-900 dark:text-white"
+                >
                   {currentPage?.label || "Dashboard"}
                 </h2>
               </div>
@@ -216,14 +265,45 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 </div>
               )}
 
-              <Button
-                variant="ghost"
-                size="icon"
-                className="relative text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-              >
-                <Bell className="h-5 w-5" />
-                <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 bg-red-500 rounded-full border-2 border-white dark:border-gray-800"></span>
-              </Button>
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="relative text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    <Bell className="h-5 w-5" />
+                    {notifications.length > 0 && (
+                      <Badge
+                        variant="destructive"
+                        className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 rounded-full"
+                      >
+                        {notifications.length}
+                      </Badge>
+                    )}
+                  </Button>
+                </SheetTrigger>
+                <SheetContent>
+                  <SheetHeader className="flex flex-row items-center justify-between pr-6">
+                    <SheetTitle>Notifications</SheetTitle>
+                    {notifications.length > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleClearAllNotifications}
+                        className="text-sm text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
+                      >
+                        Clear All
+                      </Button>
+                    )}
+                  </SheetHeader>
+                  <NotificationsCenter
+                    notifications={notifications}
+                    loading={notificationsLoading}
+                    onClearNotification={handleClearNotification}
+                  />
+                </SheetContent>
+              </Sheet>
 
               <UserProfile />
               <ModeToggle />
@@ -237,11 +317,13 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         </main>
       </div>
 
-      <GlobalSearchResultsOverlay
-        searchQuery={searchQuery}
-        isOpen={isSearchOverlayOpen}
-        onClose={handleCloseSearchOverlay}
-      />
+      <Suspense fallback={null}>
+        <GlobalSearchResultsOverlay
+          searchQuery={searchQuery}
+          isOpen={isSearchOverlayOpen}
+          onClose={handleCloseSearchOverlay}
+        />
+      </Suspense>
     </div>
   );
 }
