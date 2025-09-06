@@ -1,7 +1,7 @@
 "use client";
 
-import { Logout } from '@/components/Logout';
-import { Button } from '@/components/ui/button';
+import { Logout } from "@/components/Logout";
+import { Button } from "@/components/ui/button";
 import {
   Sidebar,
   SidebarContent,
@@ -13,8 +13,8 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar"
-import { BookOpen } from 'lucide-react';
+} from "@/components/ui/sidebar";
+import { BookOpen } from "lucide-react";
 
 interface SidebarItem {
   id: string;
@@ -29,7 +29,11 @@ interface SidebarProps {
   onItemSelect: (id: string) => void;
 }
 
-export function SidebarComponent({ items, activeItem, onItemSelect }: SidebarProps) {
+export function SidebarComponent({
+  items,
+  activeItem,
+  onItemSelect,
+}: SidebarProps) {
   return (
     <Sidebar>
       <SidebarHeader className="border-b border-sidebar-border">
@@ -39,11 +43,13 @@ export function SidebarComponent({ items, activeItem, onItemSelect }: SidebarPro
           </div>
           <div>
             <h1 className="text-lg font-bold text-sidebar-foreground">BMS</h1>
-            <p className="text-xs text-sidebar-foreground/70">Book Management System</p>
+            <p className="text-xs text-sidebar-foreground/70">
+              Book Management System
+            </p>
           </div>
         </div>
       </SidebarHeader>
-      
+
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
@@ -59,7 +65,9 @@ export function SidebarComponent({ items, activeItem, onItemSelect }: SidebarPro
                     <item.icon className="h-4 w-4" />
                     <div className="flex flex-col items-start">
                       <span className="font-medium">{item.label}</span>
-                      <span className="text-xs text-sidebar-foreground/70">{item.description}</span>
+                      <span className="text-xs text-sidebar-foreground/70">
+                        {item.description}
+                      </span>
                     </div>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -68,9 +76,9 @@ export function SidebarComponent({ items, activeItem, onItemSelect }: SidebarPro
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      
+
       <SidebarFooter className="border-t border-sidebar-border">
-        <div className="p-2">
+        <div>
           <Logout />
         </div>
       </SidebarFooter>

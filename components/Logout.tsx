@@ -18,11 +18,11 @@ export function Logout({ collapsed = false }: LogoutProps) {
   };
 
   return (
-    <Button 
-      variant="ghost" 
+    <Button
+      variant="ghost"
       onClick={handleLogout}
-      className={`w-full ${collapsed ? 'px-2' : ''}`}
-      title={collapsed ? 'Logout' : undefined}
+      className={`w-full ${collapsed ? "px-2" : ""}`}
+      title={collapsed ? "Logout" : undefined}
     >
       {collapsed ? (
         <LogOut className="h-4 w-4" />
