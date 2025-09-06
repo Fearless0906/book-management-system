@@ -8,6 +8,11 @@ import { WelcomeSection } from "@/components/dashboard/WelcomeSection";
 import { StatsGrid } from "@/components/dashboard/StatsGrid";
 import { RecentBooks } from "@/components/dashboard/RecentBooks";
 import { RecentActivity } from "@/components/dashboard/RecentActivity";
+import { OverdueBooksSection } from "@/components/dashboard/OverdueBooksSection";
+import { PopularBooksSection } from "@/components/dashboard/PopularBooksSection";
+import { UserQuickActions } from "@/components/dashboard/UserQuickActions";
+import { BookAvailabilityChart } from "@/components/dashboard/BookAvailabilityChart";
+import { QuickLinks } from "@/components/dashboard/QuickLinks";
 import useFetch from "@/helpers/useFetch";
 import { fetchBooks, fetchActivities, fetchDashboardStats } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -114,17 +119,22 @@ export default function Dashboard() {
           onAddUser={() => router.push("/dashboard/users?add=true")}
         />
         <StatsGrid stats={stats} />
+        <OverdueBooksSection />
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
           <RecentBooks
             books={recentBooks}
             onAddBook={() => router.push("/dashboard/books?add=true")}
             onViewAll={() => router.push("/dashboard/books")}
           />
+          <BookAvailabilityChart />
           <RecentActivity
             activities={activitiesData?.activities || []}
             onViewAll={() => router.push("/dashboard/activity")}
           />
+          <PopularBooksSection />
         </div>
+        <UserQuickActions />
+        <QuickLinks />
       </div>
     </DashboardLayout>
   );

@@ -7,7 +7,6 @@ import {
   UserFormData,
   PaginatedUserResponse,
   FetchUsersOptions,
-  Activity,
   FetchActivitiesOptions,
   PaginatedActivityResponse,
 } from "@/types/types";
@@ -161,7 +160,9 @@ export const fetchActivities = async ({
       limit: limit.toString(),
     });
 
-    const response = await fetch(`/api/activity?${params}`, { credentials: "include" });
+    const response = await fetch(`/api/activity?${params}`, {
+      credentials: "include",
+    });
     if (!response.ok) {
       throw new Error("Failed to fetch activities");
     }
@@ -173,8 +174,23 @@ export const fetchActivities = async ({
   }
 };
 
+export const fetchOverdueBooks = async (): Promise<Book[]> => {
+  try {
+    const response = await fetch("/api/overdue", { credentials: "include" });
+    if (!response.ok) {
+      throw new Error("Failed to fetch overdue books");
+    }
+    const data = await response.json();
+    return data.books; // Assuming the API returns { books: Book[] }
+  } catch (err) {
+    throw new Error(err instanceof Error ? err.message : "An error occurred");
+  }
+};
+
 // Analytics functions
-export const fetchMostBorrowedBooks = async (): Promise<{ title: string; count: number }[]> => {
+export const fetchMostBorrowedBooks = async (): Promise<
+  { title: string; count: number }[]
+> => {
   try {
     const response = await fetch("/api/analytics?type=most-borrowed-books");
     if (!response.ok) {
@@ -186,9 +202,13 @@ export const fetchMostBorrowedBooks = async (): Promise<{ title: string; count: 
   }
 };
 
-export const fetchBookStatusDistribution = async (): Promise<{ status: string; count: number }[]> => {
+export const fetchBookStatusDistribution = async (): Promise<
+  { status: string; count: number }[]
+> => {
   try {
-    const response = await fetch("/api/analytics?type=book-status-distribution");
+    const response = await fetch(
+      "/api/analytics?type=book-status-distribution"
+    );
     if (!response.ok) {
       throw new Error("Failed to fetch book status distribution");
     }
@@ -198,7 +218,9 @@ export const fetchBookStatusDistribution = async (): Promise<{ status: string; c
   }
 };
 
-export const fetchActivityOverTime = async (): Promise<{ date: string; count: number }[]> => {
+export const fetchActivityOverTime = async (): Promise<
+  { date: string; count: number }[]
+> => {
   try {
     const response = await fetch("/api/analytics?type=activity-over-time");
     if (!response.ok) {
@@ -217,6 +239,24 @@ export const fetchDashboardStats = async (): Promise<any> => {
       throw new Error("Failed to fetch dashboard stats");
     }
     return response.json();
+  } catch (err) {
+    throw new Error(err instanceof Error ? err.message : "An error occurred");
+  }
+};
+
+interface SearchResults {
+  books: Book[];
+  users: User[];
+}
+
+export const fetchGlobalSearchResults = async (query: string): Promise<SearchResults> => {
+  try {
+    const response = await fetch(`/api/search?query=${encodeURIComponent(query)}`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data: SearchResults = await response.json();
+    return data;
   } catch (err) {
     throw new Error(err instanceof Error ? err.message : "An error occurred");
   }

@@ -1,7 +1,7 @@
 "use client";
 
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,11 +9,11 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { authClient } from '@/lib/auth-client';
-import { User, Settings, LogOut, ChevronDown } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+} from "@/components/ui/dropdown-menu";
+import { authClient } from "@/lib/auth-client";
+import { User, Settings, ChevronDown } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 interface UserData {
   id: string;
@@ -31,13 +31,13 @@ export function UserProfile() {
     const fetchSession = async () => {
       try {
         const session = await authClient.getSession();
-        console.log('Session data:', session); // Debug log
-        
+        console.log("Session data:", session); // Debug log
+
         if (session && session.data && session.data.user) {
           setUser(session.data.user);
         }
       } catch (error) {
-        console.error('Error fetching session:', error);
+        console.error("Error fetching session:", error);
       } finally {
         setIsLoading(false);
       }
@@ -46,13 +46,11 @@ export function UserProfile() {
     fetchSession();
   }, []);
 
-
-
   const getInitials = (name: string) => {
     return name
-      .split(' ')
-      .map(word => word.charAt(0))
-      .join('')
+      .split(" ")
+      .map((word) => word.charAt(0))
+      .join("")
       .toUpperCase()
       .slice(0, 2);
   };
@@ -95,11 +93,11 @@ export function UserProfile() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => router.push('/dashboard/settings')}>
+        <DropdownMenuItem onClick={() => router.push("/dashboard/settings")}>
           <User className="mr-2 h-4 w-4" />
           <span>Profile</span>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => router.push('/dashboard/settings')}>
+        <DropdownMenuItem onClick={() => router.push("/dashboard/settings")}>
           <Settings className="mr-2 h-4 w-4" />
           <span>Settings</span>
         </DropdownMenuItem>

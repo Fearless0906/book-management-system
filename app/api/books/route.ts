@@ -41,9 +41,15 @@ export async function GET(request: NextRequest) {
 
     let orderByClause;
     if (sort) {
-      const [field, direction] = sort.split(':');
-      if (field === 'createdAt' && (direction === 'asc' || direction === 'desc')) {
-        orderByClause = direction === 'asc' ? sql`${book.createdAt} ASC` : sql`${book.createdAt} DESC`;
+      const [field, direction] = sort.split(":");
+      if (
+        field === "createdAt" &&
+        (direction === "asc" || direction === "desc")
+      ) {
+        orderByClause =
+          direction === "asc"
+            ? sql`${book.createdAt} ASC`
+            : sql`${book.createdAt} DESC`;
       }
     }
 
@@ -192,7 +198,9 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "Book not found" }, { status: 404 });
     }
 
-    const updateData: any = { updatedAt: new Date() };
+    const updateData: Partial<typeof book.$inferInsert> = {
+      updatedAt: new Date(),
+    };
     if (title) updateData.title = title;
     if (author) updateData.author = author;
     if (isbn) updateData.isbn = isbn;

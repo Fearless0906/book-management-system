@@ -12,15 +12,13 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 
+import { User } from "@/types/types";
+
 interface EditUserDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onUserUpdated: () => void;
-  user: {
-    id: string;
-    name: string;
-    email: string;
-  } | null;
+  user: User | null;
 }
 
 export function EditUserDialog({

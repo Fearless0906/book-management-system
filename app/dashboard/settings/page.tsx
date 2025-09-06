@@ -1,28 +1,34 @@
 "use client";
 
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { EmptyState } from '@/components/dashboard/EmptyState';
-import {
-  Settings,
-} from 'lucide-react';
+import { SettingsPageLayout } from '@/components/layout/SettingsPageLayout';
+import { authClient } from '@/lib/auth-client';
+import { useEffect, useState } from 'react';
+import { User } from '@/types/types';
 
 export default function SettingsPage() {
-  return (
-    <DashboardLayout>
-      <div className="space-y-6">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Settings</h2>
-          <p className="text-gray-600 dark:text-gray-400">Configure your system</p>
-        </div>
-        
-        <EmptyState
-          title="System Settings"
-          description="Configure your book management system settings."
-          icon={Settings}
-          buttonText="Open Settings"
-          onButtonClick={() => console.log('Open settings clicked')}
-        />
-      </div>
-    </DashboardLayout>
-  );
+  const { data: session } = authClient.useSession();
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    if (session?.user) {
+      // In a real application, you would fetch the full user object from your API
+      // based on the session user ID or email.
+      // For this example, we'll construct a basic user object.
+      setUser({
+        id: session.user.id || '',
+        name: session.user.name || '',
+        email: session.user.email || '',
+        image: session.user.image || null,
+        role: (session.user.role as "Admin" | "User") || "User",
+        createdAt: '', // Placeholder
+        updatedAt: '', // Placeholder
+      });
+    }
+  }, [session]);
+
+  if (!user) {
+    return <div>Loading settings...</div>; // Or a skeleton loader
+  }
+
+  return <SettingsPageLayout user={user} />;
 }

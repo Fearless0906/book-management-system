@@ -22,10 +22,12 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { createUser } from "@/lib/api";
+import { UserFormData } from "@/types/types";
 
 const userFormSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Please enter a valid email address"),
+  role: z.enum(["Admin", "User"]),
 });
 
 type FormData = z.infer<typeof userFormSchema>;
@@ -48,13 +50,14 @@ export function AddUserDialog({
     defaultValues: {
       name: "",
       email: "",
+      role: "User",
     },
   });
 
   async function onSubmit(data: FormData) {
     setLoading(true);
     try {
-      await createUser(data);
+      await createUser(data as UserFormData);
       toast.success("User added successfully");
       onUserAdded();
       onOpenChange(false);
@@ -99,6 +102,22 @@ export function AddUserDialog({
                   <FormLabel>Email</FormLabel>
                   <FormControl>
                     <Input {...field} type="email" placeholder="Enter email" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="role"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Role</FormLabel>
+                  <FormControl>
+                    <select {...field}>
+                      <option value="User">User</option>
+                      <option value="Admin">Admin</option>
+                    </select>
                   </FormControl>
                   <FormMessage />
                 </FormItem>

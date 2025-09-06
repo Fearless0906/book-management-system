@@ -31,14 +31,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  emailVerified: boolean;
-  createdAt: string;
-  borrowedBooksCount?: number;
-}
+import { User } from "@/types/types";
 
 interface UsersTableProps {
   users: User[];

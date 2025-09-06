@@ -4,17 +4,16 @@ import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { EmptyState } from "@/components/dashboard/EmptyState";
-import { UsersTable } from "@/components/UsersTable";
+import { UsersTable } from "@/components/user/UsersTable";
 import { AddUserDialog } from "@/components/modals/AddUserDialog";
 import { EditUserDialog } from "@/components/modals/EditUserDialog";
 import { Plus, UserCheck, Search, RefreshCcw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-
 import { deleteUser, fetchUsers } from "@/lib/api";
 import { useDebounce } from "@/hooks/useDebounce";
 import useFetch from "@/helpers/useFetch";
-import { User, PaginatedResponse } from "@/types/types";
+import { User } from "@/types/types";
 
 export default function UsersPage() {
   const [searchTerm, setSearchTerm] = useState("");

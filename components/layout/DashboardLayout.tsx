@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   BookOpen,
@@ -18,8 +18,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Logout } from "@/components/Logout";
-import { UserProfile } from "@/components/UserProfile";
+import { UserProfile } from "@/components/user/UserProfile";
 import { ModeToggle } from "@/components/themeToggle";
+import { GlobalSearchResultsOverlay } from "@/components/GlobalSearchResultsOverlay";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -27,8 +28,38 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSearchOverlayOpen, setIsSearchOverlayOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+
+  const handleSearch = () => {
+    // This function is primarily for triggering search on Enter key press
+    // The overlay is now opened directly on input click or Ctrl+K
+    if (searchQuery.trim()) {
+      // Potentially trigger a search if needed, but the overlay is already open
+    }
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key === "k") {
+        event.preventDefault(); // Prevent default browser behavior (e.g., focusing search bar)
+        setIsSearchOverlayOpen(true);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
+
+  const handleCloseSearchOverlay = () => {
+    setIsSearchOverlayOpen(false);
+    setSearchQuery(""); // Clear search query when closing
+  };
 
   const sidebarItems = [
     { id: "dashboard", label: "Dashboard", icon: Home, href: "/dashboard" },
@@ -67,7 +98,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   ];
 
   const currentPage = sidebarItems.find((item) => item.href === pathname);
-  const showSearch = pathname !== "/dashboard";
+  const showSearch = true;
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900 font-sans antialiased">
@@ -160,12 +191,28 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
             <div className="flex items-center space-x-4">
               {showSearch && (
-                <div className="relative hidden md:block">
+                <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                   <Input
                     placeholder="Search..."
                     className="pl-10 w-64 bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onClick={() => setIsSearchOverlayOpen(true)} // Open overlay on click
+                    onKeyPress={(e) => {
+                      if (e.key === "Enter") {
+                        handleSearch();
+                      }
+                    }}
                   />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-0 top-1/2 transform -translate-y-1/2"
+                    onClick={() => setIsSearchOverlayOpen(true)} // Open overlay on click
+                  >
+                    <Search className="h-4 w-4" />
+                  </Button>
                 </div>
               )}
 
@@ -189,6 +236,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           {children}
         </main>
       </div>
+
+      <GlobalSearchResultsOverlay
+        searchQuery={searchQuery}
+        isOpen={isSearchOverlayOpen}
+        onClose={handleCloseSearchOverlay}
+      />
     </div>
   );
 }

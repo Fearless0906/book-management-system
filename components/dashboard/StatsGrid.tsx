@@ -24,6 +24,7 @@ export function StatsGrid({ stats }: StatsGridProps) {
             <div className="space-y-1">
               <p className="text-sm font-medium text-gray-600 dark:text-gray-300">{stat.label}</p>
               <p className="text-4xl font-bold text-gray-900 dark:text-white">{stat.value}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{stat.description}</p>
             </div>
             <div className="p-3 rounded-full bg-gray-900/10 dark:bg-white/10">
               <stat.icon className="h-6 w-6 text-gray-800 dark:text-white" />
